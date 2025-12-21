@@ -23,6 +23,10 @@ class BLEManager: NSObject, ObservableObject,
     
     var postureStatus = 1;
     
+    override init() {
+        super.init()
+        centralManager = CBCentralManager(delegate: self, queue: .main)
+    }
     
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {

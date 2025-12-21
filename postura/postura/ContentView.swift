@@ -23,11 +23,33 @@ struct ContentView: View {
                     .foregroundColor(.white)
                     .cornerRadius(10)
             }
+            // List of peripherals
+                List(ble.peripherals, id: \.identifier) { peripheral in
+                    Button(action: {
+                        ble.connect(to: peripheral)
+                        //streamer.peripheral = peripheral
+                        peripheral.delegate = ble
+                    }) {
+                        VStack(alignment: .leading) {
+                            Text(peripheral.name ?? "Unknown Device")
+                                .font(.headline)
+                            Text(peripheral.identifier.uuidString)
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                
+                // Connected device
+                if let connected = ble.connectedPeripheral {
+                    Text("Connected to: \(connected.name ?? "Unknown")")
+                        .padding()
+                        .foregroundColor(.green)
+                }
+                
+                Divider()
+                
         }
         .padding()
     }
-}
-
-#Preview {
-    ContentView()
 }
