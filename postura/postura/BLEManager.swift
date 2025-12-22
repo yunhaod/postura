@@ -15,13 +15,22 @@ class BLEManager: NSObject, ObservableObject,
     
     @Published var peripherals: [CBPeripheral] = []
     @Published var connectedPeripheral: CBPeripheral?
+    @Published var isConnected: Bool = false
     
+    @Published var isPostureGood: Bool = false
+
+    @Published var goodPostureTime: TimeInterval = 0
+    @Published var badPostureTime: TimeInterval = 0
+
+    private var lastPostureChangeTime: Date?
+
     var centralManager: CBCentralManager!
     
     var PostureServiceUUID = CBUUID(string : "a3721400-00b0-4240-ba50-05ca45bf8abc")
     var PostureCharacteristicUUID = CBUUID(string: "a3721400-00b0-4240-ba50-05ca45bf8dec")
+    var CommandCharacteristicUUID = CBUUID(string: "a3721400-00b0-4240-ba50-05ca45bf8def")
     
-    var postureStatus = 1;
+    var CommandCharacteristic: CBCharacteristic?
     
     override init() {
         super.init()
@@ -76,11 +85,24 @@ class BLEManager: NSObject, ObservableObject,
             if characteristic.uuid == PostureCharacteristicUUID {
                 // Use the characteristic's UUID string for clear logging
                 print("Found target characteristic! UUID: \(characteristic.uuid.uuidString). Subscribing...")
-                // Subscribe to notifications for the found characteristic
                 peripheral.setNotifyValue(true, for: characteristic)
+            }
+            if characteristic.uuid == CommandCharacteristicUUID {
+                CommandCharacteristic = characteristic
             }
         }
     }
+    
+    func centralManager(_ central: CBCentralManager,
+                        didDisconnectPeripheral peripheral: CBPeripheral,
+                        error: Error?) {
+
+        finalizePostureTiming()
+        connectedPeripheral = nil
+        isConnected = false
+    }
+
+
     
     //MARK: Discovering characteristics
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -104,7 +126,12 @@ class BLEManager: NSObject, ObservableObject,
         guard let data = characteristic.value,
             let status = data.first else { return }
 
-        postureStatus = Int(status)
+            // determine if the posture data has changed
+            let newIsGood = (status == 1)
+
+            guard newIsGood != isPostureGood else { return }
+
+            handlePostureUpdate(isGood: newIsGood)
     }
     
     func disconnect() {
@@ -113,6 +140,59 @@ class BLEManager: NSObject, ObservableObject,
         }
         connectedPeripheral = nil
     }
+    
+    func handlePostureUpdate(isGood: Bool) {
+        let now = Date()
+
+        if let lastTime = lastPostureChangeTime {
+            let elapsed = now.timeIntervalSince(lastTime)
+
+            if isPostureGood {
+                goodPostureTime += elapsed
+            } else {
+                badPostureTime += elapsed
+            }
+        }
+
+        // Update state
+        isPostureGood = isGood
+        lastPostureChangeTime = now
+    }
+
+    func finalizePostureTiming() {
+        guard let lastTime = lastPostureChangeTime else { return }
+
+        let now = Date()
+        let elapsed = now.timeIntervalSince(lastTime)
+
+        if isPostureGood {
+            goodPostureTime += elapsed
+        } else {
+            badPostureTime += elapsed
+        }
+
+        lastPostureChangeTime = nil
+    }
+    
+    func startPostureTracking() {
+        goodPostureTime = 0
+        badPostureTime = 0
+        lastPostureChangeTime = Date()
+    }
+
+
+    
+    func writeCommand(_ value: UInt8) {
+        guard let peripheral = connectedPeripheral,
+              let characteristic = CommandCharacteristic else { return }
+
+        peripheral.writeValue(
+            Data([value]),
+            for: characteristic,
+            type: .withResponse
+        )
+    }
+    
     
 }
 
