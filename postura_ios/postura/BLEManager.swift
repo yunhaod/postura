@@ -126,7 +126,7 @@ class BLEManager: NSObject, ObservableObject,
         guard let data = characteristic.value,
             let status = data.first else { return }
 
-            // determine if the posture data has changed
+            // determine if the posture data has changed, sending 1 means good 
             let newIsGood = (status == 1)
 
             guard newIsGood != isPostureGood else { return }
