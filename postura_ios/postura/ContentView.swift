@@ -73,18 +73,25 @@ struct ConnectedView: View {
                 .foregroundColor(.green)
 
             // MARK: - Controls
-            VStack(spacing: 12) {
-                Button("Start Tracking") {
-                    ble.writeCommand(3)
+            Button {
+                if ble.isTracking {
+                    ble.writeCommand(4)           // Stop
+                    ble.isTracking = false
+                    ble.stopPostureTracking()
+                } else {
+                    ble.writeCommand(3)           // Start
                     ble.startPostureTracking()
+                    ble.isTracking = true
                 }
-                .buttonStyle(PrimaryButtonStyle(color: .green))
-
-                Button("Stop Tracking") {
-                    ble.writeCommand(4)
-                }
-                .buttonStyle(PrimaryButtonStyle(color: .orange))
+            } label: {
+                Text(ble.isTracking ? "Stop Tracking" : "Start Tracking")
             }
+            .buttonStyle(
+                PrimaryButtonStyle(
+                    color: ble.isTracking ? .orange : .green
+                )
+            )
+
 
             // MARK: - Stats
             VStack(spacing: 8) {
@@ -92,11 +99,12 @@ struct ConnectedView: View {
                     .font(.headline)
 
                 HStack(spacing: 20) {
+
                     VStack {
                         Text("Good")
                             .foregroundColor(.green)
-                        let good_duration = Duration.seconds(ble.goodPostureTime)
-                        Text(good_duration.formatted(.time(pattern: .hourMinuteSecond)))
+
+                        Text(formatHMS(ble.goodPostureTime))
                             .font(.title3)
                             .fontWeight(.semibold)
                     }
@@ -104,21 +112,26 @@ struct ConnectedView: View {
                     VStack {
                         Text("Bad")
                             .foregroundColor(.red)
-                        let bad_duration = Duration.seconds(ble.badPostureTime)
-                        Text(bad_duration.formatted(.time(pattern: .hourMinuteSecond)))
+
+                        Text(formatHMS(ble.badPostureTime))
                             .font(.title3)
                             .fontWeight(.semibold)
                     }
+
                     VStack {
                         Text("Total")
-                            .foregroundColor(.red)
-                        let total_duration = Duration.seconds(ble.badPostureTime) + Duration.seconds(ble.goodPostureTime)
-                        Text(total_duration.formatted(.time(pattern: .hourMinuteSecond)))
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+
+                        Text(formatHMS(
+                            ble.goodPostureTime + ble.badPostureTime
+                        ))
+                        .font(.title3)
+                        .fontWeight(.semibold)
                     }
                 }
             }
+
+
             .padding()
             .background(Color(white: 12))
             .cornerRadius(16)
@@ -149,5 +162,19 @@ struct PrimaryButtonStyle: ButtonStyle {
             .foregroundColor(.white)
             .cornerRadius(12)
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
+    }
+}
+
+
+func formatHMS(_ seconds: TimeInterval) -> String {
+    let total = Int(seconds)
+    let h = total / 3600
+    let m = (total % 3600) / 60
+    let s = total % 60
+
+    if h > 0 {
+        return String(format: "%d:%02d:%02d", h, m, s)
+    } else {
+        return String(format: "%02d:%02d", m, s)
     }
 }

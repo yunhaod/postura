@@ -57,23 +57,26 @@ void setupBLE(){
 
   PostureChar.setProperties(CHR_PROPS_NOTIFY);
   PostureChar.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
-  PostureChar.setFixedLen(DATA_SIZE * sizeof(short));   
+  PostureChar.setFixedLen(1);   
   PostureChar.begin();
 
-  CommandChar.setProperties(CHR_PROPS_WRITE | CHR_PROPS_WRITE_WO_RESP);
-  CommandChar.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
-  CommandChar.setFixedLen(DATA_SIZE * sizeof(short)); 
+  CommandChar.setProperties(CHR_PROPS_WRITE | CHR_PROPS_READ);
+  CommandChar.setPermission(SECMODE_OPEN, SECMODE_OPEN);
+  CommandChar.setFixedLen(1); 
   CommandChar.setWriteCallback(commandWritten);
   CommandChar.begin();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-    if (send_status == true){
+
+    if (send_status == true && Bluefruit.connected()){
       //if the posture changed, send an update
       if (posture_status != determine_posture()){
         //sending a 1 indicates good posture
-        PostureChar.notify8(uint8_t(posture_status));
+        posture_status = determine_posture();
+        PostureChar.notify8(posture_status);
+        Serial.println("Notification sent");
     }
   }
 }
@@ -82,11 +85,13 @@ void commandWritten(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, ui
   if (len < 1) return;
 
   uint8_t command = data[0];
-
+  Serial.println("Command Written");
   if (command == 3) {
     send_status = true;
+    Serial.println("Posture Status can be sent");
   } else {
     send_status = false;
+    Serial.println("Posture Status cannot be sent");
   }
 }
 

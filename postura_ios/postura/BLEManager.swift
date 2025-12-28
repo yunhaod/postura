@@ -16,13 +16,14 @@ class BLEManager: NSObject, ObservableObject,
     @Published var peripherals: [CBPeripheral] = []
     @Published var connectedPeripheral: CBPeripheral?
     @Published var isConnected: Bool = false
-    
+    @Published var isTracking = false
     @Published var isPostureGood: Bool = false
 
     @Published var goodPostureTime: TimeInterval = 0
     @Published var badPostureTime: TimeInterval = 0
 
     private var lastPostureChangeTime: Date?
+    private var postureTimer: Timer?
 
     var centralManager: CBCentralManager!
     
@@ -67,6 +68,7 @@ class BLEManager: NSObject, ObservableObject,
             centralManager.connect(peripheral, options: nil)
             print("Connecting to \(peripheral.name ?? "Unknown")...")
             peripheral.delegate = self
+            isConnected = true;
         }
 
     func centralManager(_ central: CBCentralManager,
@@ -97,11 +99,11 @@ class BLEManager: NSObject, ObservableObject,
                         didDisconnectPeripheral peripheral: CBPeripheral,
                         error: Error?) {
 
-        finalizePostureTiming()
         connectedPeripheral = nil
         isConnected = false
+        stopPostureTracking()
+        isTracking = false
     }
-
 
     
     //MARK: Discovering characteristics
@@ -117,20 +119,19 @@ class BLEManager: NSObject, ObservableObject,
             print("Discovered service: \(service.uuid)")
             // Discover characteristics of the service
             peripheral.discoverCharacteristics(nil, for: service)
-            //discovering all characteristics!!!!!
         }
     }
     
-    // Called whenever a characteristic update arrives
+    // MARK: INCOMING UPDATES
+    //Called whenever a characteristic update arrives
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard let data = characteristic.value,
             let status = data.first else { return }
-
-            // determine if the posture data has changed, sending 1 means good 
+ 
+            // determine if the posture data has changed, sending 1 means good
             let newIsGood = (status == 1)
 
-            guard newIsGood != isPostureGood else { return }
-
+    guard newIsGood != isPostureGood else { return }
             handlePostureUpdate(isGood: newIsGood)
     }
     
@@ -139,6 +140,9 @@ class BLEManager: NSObject, ObservableObject,
             centralManager.cancelPeripheralConnection(p)
         }
         connectedPeripheral = nil
+        isConnected = false
+        stopPostureTracking()
+        isTracking = false
     }
     
     func handlePostureUpdate(isGood: Bool) {
@@ -158,29 +162,28 @@ class BLEManager: NSObject, ObservableObject,
         isPostureGood = isGood
         lastPostureChangeTime = now
     }
-
-    func finalizePostureTiming() {
-        guard let lastTime = lastPostureChangeTime else { return }
-
-        let now = Date()
-        let elapsed = now.timeIntervalSince(lastTime)
-
-        if isPostureGood {
-            goodPostureTime += elapsed
-        } else {
-            badPostureTime += elapsed
-        }
-
-        lastPostureChangeTime = nil
-    }
     
     func startPostureTracking() {
-        goodPostureTime = 0
-        badPostureTime = 0
-        lastPostureChangeTime = Date()
+        guard !isTracking else { return }
+
+        isTracking = true
+
+        postureTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+
+            if self.isPostureGood {
+                self.goodPostureTime += 1
+            } else {
+                self.badPostureTime += 1
+            }
+        }
     }
 
-
+    func stopPostureTracking() {
+        isTracking = false
+        postureTimer?.invalidate()
+        postureTimer = nil
+    }
     
     func writeCommand(_ value: UInt8) {
         guard let peripheral = connectedPeripheral,
