@@ -19,11 +19,10 @@ class BLEManager: NSObject, ObservableObject,
     @Published var isTracking = false
     @Published var isPostureGood: Bool = false
 
-    @Published var goodPostureTime: TimeInterval = 0
-    @Published var badPostureTime: TimeInterval = 0
+    @Published var dailyStats: [Date: DailyPostureStats] = [:]
+    @Published var selectedDate: Date = Date()
 
-    private var lastPostureChangeTime: Date?
-    private var postureTimer: Timer?
+    private var postureTimer: DispatchSourceTimer?
 
     var centralManager: CBCentralManager!
     
@@ -132,7 +131,7 @@ class BLEManager: NSObject, ObservableObject,
             let newIsGood = (status == 1)
 
     guard newIsGood != isPostureGood else { return }
-            handlePostureUpdate(isGood: newIsGood)
+        isPostureGood = newIsGood
     }
     
     func disconnect() {
@@ -145,43 +144,57 @@ class BLEManager: NSObject, ObservableObject,
         isTracking = false
     }
     
-    func handlePostureUpdate(isGood: Bool) {
-        let now = Date()
+    func stats(for date: Date) -> DailyPostureStats {
+        let day = Calendar.current.startOfDay(for: date)
 
-        if let lastTime = lastPostureChangeTime {
-            let elapsed = now.timeIntervalSince(lastTime)
-
-            if isPostureGood {
-                goodPostureTime += elapsed
-            } else {
-                badPostureTime += elapsed
-            }
-        }
-
-        // Update state
-        isPostureGood = isGood
-        lastPostureChangeTime = now
+        return dailyStats[day] ??
+            DailyPostureStats(
+                date: day,
+                goodTime: 0,
+                badTime: 0
+            )
     }
+
     
     func startPostureTracking() {
         guard !isTracking else { return }
-
         isTracking = true
 
-        postureTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now(), repeating: 1)
 
-            if self.isPostureGood {
-                self.goodPostureTime += 1
-            } else {
-                self.badPostureTime += 1
-            }
+        timer.setEventHandler { [weak self] in
+            guard let self else { return }
+            self.updateDailyTime(isGood: self.isPostureGood)
         }
+
+        postureTimer = timer
+        timer.resume()
     }
+
+    
+    private func updateDailyTime(isGood: Bool) {
+        let today = startOfDay(Date())
+        
+        // Get current stats or create new
+        var stats = dailyStats[today] ?? DailyPostureStats(date: today, goodTime: 0, badTime: 0)
+        
+        // Update stats
+        if isGood {
+            stats.goodTime += 1
+        } else {
+            stats.badTime += 1
+        }
+        
+        // Reassign to trigger @Published
+        dailyStats[today] = stats
+    }
+
+
 
     func stopPostureTracking() {
         isTracking = false
-        postureTimer?.invalidate()
+        postureTimer?.cancel()
         postureTimer = nil
     }
     
@@ -196,7 +209,17 @@ class BLEManager: NSObject, ObservableObject,
         )
     }
     
-    
+}
+
+struct DailyPostureStats: Identifiable, Codable {
+    var id: Date { date }
+    let date: Date
+    var goodTime: TimeInterval
+    var badTime: TimeInterval
+}
+
+func startOfDay(_ date: Date) -> Date {
+    Calendar.current.startOfDay(for: date)
 }
 
 
