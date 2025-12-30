@@ -8,9 +8,14 @@ import SwiftUI
 
 struct ConnectedView: View {
     @ObservedObject var ble: BLEManager
-    
+    @State private var showCalendar = false
+
     var isTodaySelected: Bool {
         Calendar.current.isDateInToday(ble.selectedDate)
+    }
+
+    var stats: DailyPostureStats {
+        ble.stats(for: ble.selectedDate)
     }
 
     var body: some View {
@@ -40,12 +45,6 @@ struct ConnectedView: View {
                 )
             }
 
-
-            var stats: DailyPostureStats {
-                ble.stats(for: ble.selectedDate)
-            }
-
-
             // MARK: - Stats
             VStack(spacing: 8) {
                 HStack {
@@ -60,12 +59,19 @@ struct ConnectedView: View {
 
                     Spacer()
 
-                    DatePicker(
-                        "",
-                        selection: $ble.selectedDate,
-                        displayedComponents: .date
-                    )
-                    .labelsHidden()
+                    Button {
+                        showCalendar = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(dateLabel(for: ble.selectedDate))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 .padding(.horizontal)
 
@@ -73,32 +79,14 @@ struct ConnectedView: View {
                     .font(.headline)
 
                 HStack(spacing: 20) {
-
-                    PostureStatView(
-                        title: "Good",
-                        time: stats.goodTime,
-                        color: .green
-                    )
-
-                    PostureStatView(
-                        title: "Bad",
-                        time: stats.badTime,
-                        color: .red
-                    )
-
-                    PostureStatView(
-                        title: "Total",
-                        time: stats.goodTime + stats.badTime,
-                        color: .blue
-                    )
+                    PostureStatView(title: "Good", time: stats.goodTime, color: .green)
+                    PostureStatView(title: "Bad", time: stats.badTime, color: .red)
+                    PostureStatView(title: "Total", time: stats.goodTime + stats.badTime, color: .blue)
                 }
                 .padding(.horizontal)
-
             }
-
-
             .padding()
-            .background(Color(white: 1))
+            .background(Color.gray.opacity(0.15))
             .cornerRadius(16)
 
             Spacer()
@@ -111,8 +99,12 @@ struct ConnectedView: View {
             .foregroundColor(.red)
         }
         .padding()
+        .sheet(isPresented: $showCalendar) {
+            CalendarSheetView(selectedDate: $ble.selectedDate)
+        }
     }
 }
+
 
 
 struct PrimaryButtonStyle: ButtonStyle {
