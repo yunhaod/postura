@@ -11,6 +11,7 @@ import CoreBluetooth
 
 class PosturaManager: NSObject, ObservableObject{
 
+    @Published var isTracking = false
     @Published var dailyStats: [Date: DailyPostureStats] = [:]
     @Published var selectedDate: Date = Date()
     let bleManager: BLEManager
@@ -48,6 +49,7 @@ class PosturaManager: NSObject, ObservableObject{
 
         postureTimer = timer
         timer.resume()
+        isTracking = true
     }
 
     
@@ -70,6 +72,7 @@ class PosturaManager: NSObject, ObservableObject{
 
     func stopPostureTracking() {
         bleManager.isTracking = false
+        isTracking = true
         postureTimer?.cancel()
         postureTimer = nil
     }
