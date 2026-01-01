@@ -13,16 +13,11 @@ class BLEManager: NSObject, ObservableObject,
                   CBCentralManagerDelegate, CBPeripheralDelegate {
     
     
-    @Published var peripherals: [CBPeripheral] = []
     @Published var connectedPeripheral: CBPeripheral?
     @Published var isConnected: Bool = false
     @Published var isTracking = false
     @Published var isPostureGood: Bool = false
-
-    @Published var dailyStats: [Date: DailyPostureStats] = [:]
-    @Published var selectedDate: Date = Date()
-
-    private var postureTimer: DispatchSourceTimer?
+    @Published var peripherals: [CBPeripheral] = []
 
     var centralManager: CBCentralManager!
     
@@ -52,13 +47,15 @@ class BLEManager: NSObject, ObservableObject,
     }
     
     func centralManager(_ central: CBCentralManager,
-                        didDiscover peripheral: CBPeripheral,
-                        advertisementData: [String : Any],
-                        rssi RSSI: NSNumber) {
+                            didDiscover peripheral: CBPeripheral,
+                            advertisementData: [String : Any],
+                            rssi RSSI: NSNumber) {
 
-        if !peripherals.contains(where: { $0.identifier == peripheral.identifier }) {
-            peripherals.append(peripheral)
-        }
+            if !peripherals.contains(where: { $0.identifier == peripheral.identifier }) {
+                var updated = self.peripherals
+                updated.append(peripheral)
+                self.peripherals = updated
+            }
     }
     
     func connect(to peripheral: CBPeripheral) {
@@ -67,13 +64,11 @@ class BLEManager: NSObject, ObservableObject,
             centralManager.connect(peripheral, options: nil)
             print("Connecting to \(peripheral.name ?? "Unknown")...")
             peripheral.delegate = self
-            isConnected = true;
         }
 
-    func centralManager(_ central: CBCentralManager,
-                        didConnect peripheral: CBPeripheral) {
-        print("Connected to \(peripheral.name ?? "Unknown")")
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         peripheral.delegate = self
+        isConnected = true
         peripheral.discoverServices(nil)
     }
  
@@ -100,7 +95,6 @@ class BLEManager: NSObject, ObservableObject,
 
         connectedPeripheral = nil
         isConnected = false
-        stopPostureTracking()
         isTracking = false
     }
 
@@ -140,63 +134,10 @@ class BLEManager: NSObject, ObservableObject,
         }
         connectedPeripheral = nil
         isConnected = false
-        stopPostureTracking()
         isTracking = false
     }
     
-    func stats(for date: Date) -> DailyPostureStats {
-        let day = Calendar.current.startOfDay(for: date)
 
-        return dailyStats[day] ??
-            DailyPostureStats(
-                date: day,
-                goodTime: 0,
-                badTime: 0
-            )
-    }
-
-    
-    func startPostureTracking() {
-        guard !isTracking else { return }
-        isTracking = true
-
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now(), repeating: 1)
-
-        timer.setEventHandler { [weak self] in
-            guard let self else { return }
-            self.updateDailyTime(isGood: self.isPostureGood)
-        }
-
-        postureTimer = timer
-        timer.resume()
-    }
-
-    
-    private func updateDailyTime(isGood: Bool) {
-        let today = startOfDay(Date())
-        
-        // Get current stats or create new
-        var stats = dailyStats[today] ?? DailyPostureStats(date: today, goodTime: 0, badTime: 0)
-        
-        // Update stats
-        if isGood {
-            stats.goodTime += 1
-        } else {
-            stats.badTime += 1
-        }
-        
-        // Reassign to trigger @Published
-        dailyStats[today] = stats
-    }
-
-
-
-    func stopPostureTracking() {
-        isTracking = false
-        postureTimer?.cancel()
-        postureTimer = nil
-    }
     
     func writeCommand(_ value: UInt8) {
         guard let peripheral = connectedPeripheral,

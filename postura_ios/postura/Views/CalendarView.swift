@@ -11,16 +11,29 @@ struct CalendarSheetView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack {
+        VStack(spacing: 16) {
+
+            // Drag indicator
+            Capsule()
+                .fill(Color.secondary.opacity(0.4))
+                .frame(width: 40, height: 5)
+                .padding(.top, 8)
+
+            // Header
             HStack {
+                Text("Select Date")
+                    .font(.headline)
+
                 Spacer()
+
                 Button("Done") {
                     dismiss()
                 }
                 .fontWeight(.semibold)
             }
-            .padding()
+            .padding(.horizontal)
 
+            // Calendar
             DatePicker(
                 "",
                 selection: $selectedDate,
@@ -28,9 +41,16 @@ struct CalendarSheetView: View {
             )
             .datePickerStyle(.graphical)
             .labelsHidden()
+            .padding(.horizontal)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.secondary.opacity(0.1))
+            )
+            .padding(.horizontal)
 
             Spacer()
         }
         .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
     }
 }
