@@ -9,6 +9,14 @@ import SwiftUI
 struct ConnectedView: View {
     @ObservedObject var postura: PosturaManager
     @State private var showCalendar = false
+    
+    var livePressure: [[Bool]] {
+        [
+            [postura.bleManager.isPostureGood & 0b000001 == 1, postura.bleManager.isPostureGood & 0b000010 == 2],
+            [postura.bleManager.isPostureGood & 0b000100 == 4, postura.bleManager.isPostureGood & 0b001000 == 8],
+            [postura.bleManager.isPostureGood & 0b010000 == 16, postura.bleManager.isPostureGood & 0b100000 == 32]
+        ]
+    }
 
     var isTodaySelected: Bool {
         Calendar.current.isDateInToday(postura.selectedDate)
@@ -133,6 +141,8 @@ struct ConnectedView: View {
             //MARK: Statistic Summaries
             summaryBanner(for: postura.selectedDate)
             
+            PressureCushionView(pressurePoints: livePressure)
+
             if let summary = improvementSummary {
                 VStack{
                     HStack(spacing: 8) {

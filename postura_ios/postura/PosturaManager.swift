@@ -7,6 +7,7 @@
 
 
 import Foundation
+import Combine
 import CoreBluetooth
 
 class PosturaManager: NSObject, ObservableObject{
@@ -17,13 +18,21 @@ class PosturaManager: NSObject, ObservableObject{
     let bleManager: BLEManager
     
     private var postureTimer: DispatchSourceTimer?
+    private var cancellables = Set<AnyCancellable>()
 
     init(bleManager: BLEManager) {
-            self.bleManager = bleManager
-            super.init()
+        self.bleManager = bleManager
+        super.init()
+        bleManager.$isConnected
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] connected in
+                    if !connected {
+                        self?.stopPostureTracking()
+                    }
+                }
+                .store(in: &cancellables)
     }
 
-    
     func stats(for date: Date) -> DailyPostureStats {
         let day = Calendar.current.startOfDay(for: date)
         return dailyStats[day, default: DailyPostureStats(
@@ -32,8 +41,6 @@ class PosturaManager: NSObject, ObservableObject{
             badTime: 0
         )]
     }
-
-
     
     func startPostureTracking() {
         guard !bleManager.isTracking else { return }
@@ -44,7 +51,9 @@ class PosturaManager: NSObject, ObservableObject{
 
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            self.updateDailyTime(isGood: bleManager.isPostureGood)
+            self.updateDailyTime(isGood: bleManager.isPostureGood == 63)
+            // 000 000 each pressure sensor is not fulfilled
+            // 111 111 each pressure sensor is fulfilled
         }
 
         postureTimer = timer

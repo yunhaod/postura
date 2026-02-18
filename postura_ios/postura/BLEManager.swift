@@ -16,7 +16,7 @@ class BLEManager: NSObject, ObservableObject,
     @Published var connectedPeripheral: CBPeripheral?
     @Published var isConnected: Bool = false
     @Published var isTracking = false
-    @Published var isPostureGood: Bool = false
+    @Published var isPostureGood: Int8 = 0
     @Published var peripherals: [CBPeripheral] = []
 
     var centralManager: CBCentralManager!
@@ -51,11 +51,11 @@ class BLEManager: NSObject, ObservableObject,
                             advertisementData: [String : Any],
                             rssi RSSI: NSNumber) {
 
-            if !peripherals.contains(where: { $0.identifier == peripheral.identifier }) {
-                var updated = self.peripherals
-                updated.append(peripheral)
-                self.peripherals = updated
-            }
+        if !peripherals.contains(where: { $0.identifier == peripheral.identifier }) {
+            var updated = self.peripherals
+            updated.append(peripheral)
+            self.peripherals = updated
+        }
     }
     
     func connect(to peripheral: CBPeripheral) {
@@ -121,9 +121,9 @@ class BLEManager: NSObject, ObservableObject,
         guard let data = characteristic.value,
             let status = data.first else { return }
  
-            // determine if the posture data has changed, sending 1 means good
-            let newIsGood = (status == 1)
-
+            // determine if the posture data has changed, sending 10 means good
+            //other numbers mean something in the cushion isn't fulfilled
+            let newIsGood = Int8(status)
     guard newIsGood != isPostureGood else { return }
         isPostureGood = newIsGood
     }

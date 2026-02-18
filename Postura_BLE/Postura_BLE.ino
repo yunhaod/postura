@@ -5,10 +5,14 @@ BLEService PostureService = BLEService("a3721400-00b0-4240-ba50-05ca45bf8abc");
 BLECharacteristic PostureChar = BLECharacteristic("a3721400-00b0-4240-ba50-05ca45bf8dec");
 BLECharacteristic CommandChar = BLECharacteristic("a3721400-00b0-4240-ba50-05ca45bf8def");
 
-#define DATA_SIZE 2
-
 bool send_status = false;
-bool posture_status = false;
+volatile uint8_t posture_status = 0;
+//the number indicates which spot on the cushion is not being fulfilled.
+//63 = perfect
+// 000 000
+// 111 111
+// Numbers will be respectively mapped to where the pressure sensor is placed on the cushion
+// See sensor placing according to the diagram in the bom?
 
 void setup() {
   // put your setup code here, to run once:
@@ -96,6 +100,6 @@ void commandWritten(uint16_t conn_hdl, BLECharacteristic* chr, uint8_t* data, ui
 }
 
 //determines if the posture is good
-bool determine_posture(){
-  return true;
+uint8_t determine_posture(){
+  return 63;
 }
