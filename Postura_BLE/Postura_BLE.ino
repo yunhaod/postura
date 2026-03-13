@@ -22,7 +22,7 @@ void setup() {
   Bluefruit.setTxPower(4);  
   Bluefruit.setName("Postura");
 
-  setupBLE();
+  StartBLEservice();
 
   // Start advertising
   Bluefruit.Periph.setConnectCallback(connect_callback);
@@ -56,7 +56,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
 }
 
 
-void setupBLE(){
+void StartBLEservice(){
   PostureService.begin();
 
   PostureChar.setProperties(CHR_PROPS_NOTIFY);

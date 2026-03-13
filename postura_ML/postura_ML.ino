@@ -1,62 +1,71 @@
 #include <TensorFlowLite.h>
-#include "posture_model.h"  // Include the model
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/all_ops_resolver.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#include "postura_ble.h"
+#include "postura_model.h" //this is the model we've trained and has been converted into a c array file, needs to be flashed
 
+const int kInputSize = 7;
+const int kOutputSize = 6;
 
-// Define input and output dimensions
-const int kInputSize = 3;  // x, y, z from accelerometer
-const int kOutputSize = 6; // 3 gesture classes
+constexpr int kTensorArenaSize = 8 * 1024;
+alignas(16) uint8_t tensor_arena[kTensorArenaSize];
 
-// TensorFlow Lite model setup
+tflite::AllOpsResolver resolver;
 tflite::MicroInterpreter* interpreter = nullptr;
 
+int max_index(float* arr, int size) {
+    int max_i = 0;
+    for (int i = 1; i < size; i++) {
+        if (arr[i] > arr[max_i]) max_i = i;
+    }
+    return max_i;
+}
 
 void setup() {
-  Serial.begin(115200);
+    Serial.begin(115200);
+    BLEsetup();
+    const tflite::Model* model = tflite::GetModel(postura_model_tflite);
+    if (model->version() != TFLITE_SCHEMA_VERSION) {
+        Serial.println("Model schema mismatch!");
+        while (1);
+    }
 
-  // Load the TensorFlow Lite model
-  static tflite::MicroErrorReporter micro_error_reporter;
-  const tflite::Model* model = tflite::GetModel(posture_model_tflite);
- 
+    static tflite::MicroInterpreter static_interpreter(
+        model, resolver, tensor_arena, kTensorArenaSize, nullptr);
+    interpreter = &static_interpreter;
 
-  static tflite::MicroInterpreter static_interpreter(
-      model, resolver, tensor_arena, kTensorArenaSize, &micro_error_reporter);
+    if (interpreter->AllocateTensors() != kTfLiteOk) {
+        Serial.println("AllocateTensors failed!");
+        while (1);
+    }
 
-  interpreter = &static_interpreter;
- 
-  // Allocate memory
-  interpreter->AllocateTensors();
+    Serial.println("Model loaded OK");
 }
-
 
 void loop() {
-  // Get sensor data (e.g., from accelerometer)
-  float sensor_data[kInputSize] = {a, b, c, d, x, y, z};  // Replace with actual sensor readings
-  
-  // Input the data into the model
-  float* input = interpreter->input(0)->data.f;
-  for (int i = 0; i < kInputSize; i++) {
-    input[i] = sensor_data[i];
-  }
+    BLE.poll();
 
-  // Run inference
-  interpreter->Invoke();
-  
-  // Get the output (gesture classification)
-  float* output = interpreter->output(0)->data.f;
-  int predicted_posture = max_index(output, kOutputSize);
+    // Replace with real IMU readings
+    float x = 0.0, y = 0.0, z = 0.0;
+    float a = 0.0, b = 0.0, c = 0.0, d = 0.0;
+    float sensor_data[kInputSize] = {a, b, c, d, x, y, z};
 
-  // Print the detected gesture
-  Serial.print("Predicted Posture: ");
-  Serial.println(predicted_posture);
-}
-
-// Helper function to get the index of the highest output
-int max_index(float* arr, int size) {
-  int max_i = 0;
-  for (int i = 1; i < size; i++) {
-    if (arr[i] > arr[max_i]) {
-      max_i = i;
+    float* input = interpreter->input(0)->data.f;
+    for (int i = 0; i < kInputSize; i++) {
+        input[i] = sensor_data[i];
     }
-  }
-  return max_i;
+
+    if (interpreter->Invoke() != kTfLiteOk) {
+        Serial.println("Invoke failed!");
+        return;
+    }
+
+    float* output = interpreter->output(0)->data.f;
+    int predicted_posture = max_index(output, kOutputSize);
+
+    Serial.print("Predicted Posture: ");
+    Serial.println(predicted_posture);
+
+    delay(100);
 }
