@@ -4,7 +4,7 @@
 
 // Define input and output dimensions
 const int kInputSize = 3;  // x, y, z from accelerometer
-const int kOutputSize = 3; // 3 gesture classes
+const int kOutputSize = 6; // 3 gesture classes
 
 // TensorFlow Lite model setup
 tflite::MicroInterpreter* interpreter = nullptr;
