@@ -14,6 +14,7 @@ IR sensor
 
 The postures detected and predicted are grouped by whether they're good or bad, and bad postures are further classified into more precise reasonings:
 <br>
+<br>
 Good: Good posture, no explanation :) <br>
 Bad: neck slouching, spine slouch, left leaning, right leaning, everything bad :(
 
