@@ -1,5 +1,8 @@
 Senior Design Project for Impact Innovation Lab
+<br>
+<br>
 Postura: Embedded cushion with sensors that utilizes ML to predict posture status
+<br>
 iOS app receives posture predict and the duration of good or bad posture
 <br>
 
