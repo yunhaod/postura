@@ -5,14 +5,14 @@
 static const float VCC=3.3f;
 static const float R_FIXED=10000.0f; 
 
-PressureSensor pressureSensors[NUM_SENSORS];
+PressureSensor pressureSensors[NUM_PSENSORS];
 
-void PressureSensorSetup(int pins[NUM_SENSORS])
+void PressureSensorSetup(int pins[NUM_PSENSORS])
 {
     // Use the Arduino-provided analogReadResolution if supported (e.g., on nRF52/SAMD)
     analogReadResolution(12);
 
-    for (int s = 0; s < NUM_SENSORS; s++) {
+    for (int s = 0; s < NUM_PSENSORS; s++) {
         pressureSensors[s].pin = pins[s];
         pressureSensors[s].sum = 0;
         pressureSensors[s].idx = 0;
@@ -36,10 +36,10 @@ static float estimateRsensorOhm(float adcAvg)
     return R_FIXED * (VCC - vNode) / vNode;
 }
 
-bool ReadPressureSensors(float out[NUM_SENSORS])
+bool ReadPressureSensors(float out[NUM_PSENSORS])
 {
     bool valid = true;
-    for (int i = 0; i < NUM_SENSORS; i++) {
+    for (int i = 0; i < NUM_PSENSORS; i++) {
         uint16_t x = analogRead(pressureSensors[i].pin);
 
         // Rolling average logic

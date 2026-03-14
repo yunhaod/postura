@@ -5,7 +5,7 @@
 #include <math.h>
 
 #define FILTER_N 16
-#define NUM_SENSORS 6
+#define NUM_PSENSORS 6
 
 typedef struct{
     int      pin;
@@ -14,9 +14,9 @@ typedef struct{
     int      idx;
 }PressureSensor;
  
-extern PressureSensor pressureSensors[NUM_SENSORS];
+extern PressureSensor pressureSensors[NUM_PSENSORS];
 
-void  PressureSensorSetup(int pins[NUM_SENSORS]);
-bool  ReadPressureSensors(float out[NUM_SENSORS]);
+void  PressureSensorSetup(int pins[NUM_PSENSORS]);
+bool  ReadPressureSensors(float out[NUM_PSENSORS]);
 
 #endif

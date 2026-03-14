@@ -4,7 +4,7 @@
 
 BLEService PostureService = BLEService("a3721400-00b0-4240-ba50-05ca45bf8abc");
 BLECharacteristic SensorChar = BLECharacteristic("b3721400-00b0-4240-ba50-05ca45bf8dec");
-int pins[NUM_SENSORS] = {A0, A1, A2, A3, A4, A5};
+int pins[NUM_PSENSORS] = {A0, A1, A2, A3};
 
 
 void setup() {
@@ -64,9 +64,9 @@ void loop() {
     if (Bluefruit.connected()){
         // the expected data fields are = ["LT", 'RT', 'LM', 'RM', 'LB', 'RB', 'IR']
         //get the data from the sensors
-        float readings[NUM_SENSORS];
+        float readings[NUM_PSENSORS];
           if (ReadPressureSensors(readings)) {
-              for (int i = 0; i < NUM_SENSORS; i++) {
+              for (int i = 0; i < NUM_PSENSORS; i++) {
                   Serial.println(readings[i]);
               }
           } else {
