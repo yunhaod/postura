@@ -2,7 +2,6 @@ import csv
 import asyncio
 from bleak import BleakScanner, BleakClient
 from PyObjCTools import KeyValueCoding
-from datetime import datetime
 
 async def main():
     # Discover devices
@@ -20,10 +19,10 @@ async def main():
     for d in devices:
         if KeyValueCoding.getKey(d.details[0], 'name') == 'Postura':
             logger = d
-            print('Found Arduino')
+            print('Found Postura')
             break
     if not logger:
-        print('Arduino not found')
+        print('Postura not found')
         return
 
     address = str(KeyValueCoding.getKey(logger.details[0], 'identifier'))
@@ -34,8 +33,7 @@ async def main():
             print(service)
 
         #TODO: Enter the new characteristics id 
-        pressureCharacteristic = "" #characteristic uuid
-        irCharacteristic = "" #characteristic uuid
+        sensorCharacteristic = "b3721400-00b0-4240-ba50-05ca45bf8dec"
 
         with open(filename, "w", newline='') as f:
             fields = ["LT", 'RT', 'LM', 'RM', 'LB', 'RB', 'IR', 'Classification']
@@ -45,17 +43,14 @@ async def main():
             try:
                 while True:
                     # Read characteristics
-                    pressure = await client.read_gatt_char(temperatureCharacteristic)
-                    ir_reading = await client.read_gatt_char(humidityCharacteristic)
+                    sensor = await client.read_gatt_char(sensorCharacteristic)
                   
-                    ir = int.from_bytes(ir, byteorder='big')
 
                     posture = classification
-                    print("Pressure:", temperature)
-                    print("IR :", ir)
+                    print("Pressure:", sensor)
 
                     #write to the csv file
-                    data = pressure + [ir , posture]
+                    data = sensor + [posture]
                     writer.writerow(data)
                     f.flush()  # Ensure data is written to the file
 
