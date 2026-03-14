@@ -20,4 +20,6 @@ The postures detected and predicted are grouped by whether they're good or bad, 
 <br>
 Good: Good posture, no explanation :) <br>
 Bad: neck slouching, spine slouch, left leaning, right leaning, everything bad :(
-
+<br><br>
+To collect data, run BLE_GetData.py and Postura_BLE_GetTrainingData.ino file. These are meant for collecting an already established physical hardware to 
+trasnmit sensor data through BLE to a python script, written into a csv file. This file is useful for training the model in the jupiter notebook.
