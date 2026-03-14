@@ -1,10 +1,6 @@
-#include <Wire.h>
+#include "AK9752.h"
 
-#define AK9752_ADDR  0x64
-
-void setup() {
-  Serial.begin(115200);
-  delay(3000);
+void AK9752_init() {
   Wire.begin();
   Wire.setClock(100000);
 
@@ -21,11 +17,9 @@ void setup() {
   Wire.write(0xFD);
   Wire.endTransmission();
   delay(200);
-
-  Serial.println("starting");
 }
 
-void loop() {
+int16_t AK9752_readIR() {
   // Check DRDY bit in ST1
   Wire.beginTransmission(AK9752_ADDR);
   Wire.write(0x04);
@@ -33,10 +27,7 @@ void loop() {
   Wire.requestFrom(AK9752_ADDR, 1);
   uint8_t st1 = Wire.read();
 
-  if (!(st1 & 0x01)) {
-    delay(10);
-    return;
-  }
+  if (!(st1 & 0x01)) return INT16_MIN;
 
   // Read INTCAUSE (required before reading data)
   Wire.beginTransmission(AK9752_ADDR);
@@ -45,7 +36,7 @@ void loop() {
   Wire.requestFrom(AK9752_ADDR, 1);
   Wire.read();
 
-  // Read IR data (0x06 = low, 0x07 = high)
+  // Read IR data
   Wire.beginTransmission(AK9752_ADDR);
   Wire.write(0x06);
   Wire.endTransmission(false);
@@ -60,8 +51,5 @@ void loop() {
   Wire.requestFrom(AK9752_ADDR, 1);
   Wire.read();
 
-  int16_t irRaw = (int16_t)((irh << 8) | irl);
-  Serial.println(irRaw);
-
-  delay(150);
+  return (int16_t)((irh << 8) | irl);
 }
