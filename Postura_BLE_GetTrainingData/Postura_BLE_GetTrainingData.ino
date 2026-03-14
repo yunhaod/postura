@@ -5,7 +5,7 @@
 BLEService PostureService = BLEService("a3721400-00b0-4240-ba50-05ca45bf8abc");
 BLECharacteristic SensorChar = BLECharacteristic("b3721400-00b0-4240-ba50-05ca45bf8dec");
 int pins[NUM_PSENSORS] = {A0, A1, A2, A3};
-
+#define FlexSensorPin A4
 
 void setup() {
   // put your setup code here, to run once:
@@ -24,6 +24,8 @@ void setup() {
   Bluefruit.Advertising.start();
   Serial.println("Start advertising");
   PressureSensorSetup(pins);
+  FlexSensorSetup(FlexSensorPin);
+  IRSensorSetup();
 }
 
 // callback invoked when central connects
@@ -54,29 +56,31 @@ void StartBLEservice(){
 
   SensorChar.setProperties(CHR_PROPS_NOTIFY);
   SensorChar.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
-  SensorChar.setFixedLen(7);   
+  //5 floats and 1 int16_t is transmitted, 5 x 4 + 1 x 2 = 22 bytes
+  SensorChar.setFixedLen(22);   
   SensorChar.begin();
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
 
-    if (Bluefruit.connected()){
-        // the expected data fields are = ["LT", 'RT', 'LM', 'RM', 'LB', 'RB', 'IR']
-        //get the data from the sensors
-        float readings[NUM_PSENSORS];
-          if (ReadPressureSensors(readings)) {
-              for (int i = 0; i < NUM_PSENSORS; i++) {
-                  Serial.println(readings[i]);
-              }
-          } else {
-              Serial.println("One or more sensors invalid.");
-          }
-
-        uint16_t sensor_data[7] = {1,2,3,4,5,6,7};
-        SensorChar.notify(sensor_data, 7);
-        Serial.println("Sensor Data Sent sent");
-    }
+  if (Bluefruit.connected()){
+      // the expected data fields are = ["LT", 'RT', 'LB', 'RB', "Flex", 'IR']
+      //get the data from the sensors
+      float readings[NUM_PSENSORS];
+        if (ReadPressureSensors(readings)) {
+            for (int i = 0; i < NUM_PSENSORS; i++) {
+                Serial.println(readings[i]);
+            }
+        } else {
+            Serial.println("One or more sensors invalid.");
+        }
+      float rFlex = ReadFlexSensor(FlexSensorPin);
+      int16_t irRaw = ReadIRSensor();
+      uint16_t sensor_data[6] = {readings[0],readings[1],readings[2],readings[3],rFlex, irRaw};
+      SensorChar.notify(sensor_data, 7);
+      Serial.println("Sensor Data Sent sent");
   }
+}
 
 
