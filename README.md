@@ -1,7 +1,7 @@
 Senior Design Project for Impact Innovation Lab
 <br>
 
-![Postura Logo][https://github.com/yunhaod/postura/blob/main/imgs/Postura_image.png]
+![Postura Logo](https://github.com/yunhaod/postura/blob/main/imgs/Postura_image.png)
 <br>
 Postura: Embedded cushion with sensors that utilizes ML to predict posture status
 <br>
