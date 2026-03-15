@@ -9,9 +9,8 @@ iOS app receives posture predict and the duration of good or bad posture
 The datas utilized are: 
 [
 Left top pressure, right top pressure
-left middle pressure, right middle pressue
 left bottom pressure, right bottom pressure
-IR sensor
+IR sensor, flex sensor
 ]
 <br>
 
