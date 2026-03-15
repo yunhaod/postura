@@ -8,6 +8,10 @@ Postura: Embedded cushion with sensors that utilizes ML to predict posture statu
 iOS app receives posture predict and the duration of good or bad posture
 <br>
 
+Google Drive for Training Model: https://drive.google.com/drive/folders/1llwXYXDqBAFsbgVDumwpWMneEyu6bSd-?usp=sharing
+
+<br><br>
+
 The datas utilized are: 
 [
 Left top pressure, right top pressure
