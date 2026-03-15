@@ -36,7 +36,7 @@ async def main():
         sensorCharacteristic = "b3721400-00b0-4240-ba50-05ca45bf8dec"
 
         with open(filename, "w", newline='') as f:
-            fields = ["LT", 'RT', 'LM', 'RM', 'LB', 'RB', 'IR', 'Classification']
+            fields = ["LT", 'RT', 'LB', 'RB', 'IR', 'Flex','Classification']
             writer = csv.writer(f)
             writer.writerow(fields)
 
