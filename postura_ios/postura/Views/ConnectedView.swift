@@ -108,6 +108,7 @@ struct ConnectedView: View {
                 postureStatus.color.opacity(0.12)
             )
             .cornerRadius(12)
+            .animation(.easeInOut(duration: 0.2), value: postura.bleManager.PostureStatus)
             
             // MARK: - Stats
             VStack(spacing: 8) {

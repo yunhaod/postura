@@ -5,7 +5,18 @@
 #include "postura_ble.h"
 #include "postura_model.h" //this is the model we've trained and has been converted into a c array file, needs to be flashed
 
-const int kInputSize = 7;
+//constants computed from training data to normalize each sensor data
+//the order has to be left top, right top, left bottom, right bottom, ir, and flex
+const float MEANS[6] = {
+  ...
+};
+
+//this is just 1/std . allowing us to multiply instead of divide. 
+const float INV_STD[6] = {
+    ...};
+
+
+const int kInputSize = 6;
 const int kOutputSize = 6;
 
 constexpr int kTensorArenaSize = 8 * 1024;
@@ -48,12 +59,13 @@ void loop() {
 
     // Replace with real IMU readings
     float x = 0.0, y = 0.0, z = 0.0;
-    float a = 0.0, b = 0.0, c = 0.0, d = 0.0;
-    float sensor_data[kInputSize] = {a, b, c, d, x, y, z};
+    float a = 0.0, b = 0.0, c = 0.0,
+    float sensor_data[kInputSize] = {a, b, c, x, y, z};
 
     float* input = interpreter->input(0)->data.f;
     for (int i = 0; i < kInputSize; i++) {
-        input[i] = sensor_data[i];
+        //apply the normalization of each sensor data and then invoke inference
+        input[i] = (sensor_data[i] - MEANS[i]) * INV_STD[i];
     }
 
     if (interpreter->Invoke() != kTfLiteOk) {
