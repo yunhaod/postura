@@ -27,7 +27,7 @@ The iOS app displays:
 - Python scripts for dataset collection
 - Neural network model trained in Jupyter Notebook
 - TensorFlow Lite model deployed to the microcontroller
-- iOS app for visualization
+- iOS app for visualization and feedback
 
 ---
 
