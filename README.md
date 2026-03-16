@@ -2,7 +2,7 @@
 ### Senior Design Project – Impact Innovation Lab
 
 <p align="center">
-  <img src="https://github.com/yunhaod/postura/blob/main/imgs/Postura_image.png" width="300">
+  <img src="https://github.com/yunhaod/postura/blob/main/imgs/Postura_image.png" width="250">
 </p>
 
 **Postura** is an embedded smart cushion that uses onboard sensors and a machine learning model to detect and classify a user's sitting posture.
@@ -46,7 +46,7 @@ These values are used as features for the posture classification model.
 
 ---
 
-# Posture Classes
+# Posture Classification 
 
 The system first determines whether posture is **good or bad**.  
 Bad posture is further classified into more specific categories.
