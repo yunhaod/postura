@@ -109,9 +109,9 @@ $$
 
 Where:
 
-- $\(x\)$ = raw sensor value  
-- $\(\mu\)$ = mean of the feature (computed from the training set only, not the validation or test set)  
-- $\(\sigma\)$ = standard deviation of the feature  
+- $x$ = raw sensor value  
+- $\mu$ = mean of the feature (computed from the training set)  
+- $\sigma$ = standard deviation of the feature
 
 Important:
 
