@@ -51,9 +51,9 @@ class PosturaManager: NSObject, ObservableObject{
 
         timer.setEventHandler { [weak self] in
             guard let self else { return }
-            self.updateDailyTime(isGood: bleManager.isPostureGood == 63)
-            // 000 000 each pressure sensor is not fulfilled
-            // 111 111 each pressure sensor is fulfilled
+            self.updateDailyTime(isGood: bleManager.PostureStatus == 1)
+            // 1 is good,
+            //every other number is bad
         }
 
         postureTimer = timer

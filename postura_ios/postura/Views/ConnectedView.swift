@@ -10,14 +10,32 @@ struct ConnectedView: View {
     @ObservedObject var postura: PosturaManager
     @State private var showCalendar = false
     
-    var livePressure: [[Bool]] {
-        [
-            [postura.bleManager.isPostureGood & 0b000001 == 1, postura.bleManager.isPostureGood & 0b000010 == 2],
-            [postura.bleManager.isPostureGood & 0b000100 == 4, postura.bleManager.isPostureGood & 0b001000 == 8],
-            [postura.bleManager.isPostureGood & 0b010000 == 16, postura.bleManager.isPostureGood & 0b100000 == 32]
-        ]
-    }
+    var postureStatus: (text: String, color: Color, icon: String) {
+        switch postura.bleManager.PostureStatus {
 
+        case 1:
+            return ("Great posture!", .green, "checkmark.circle.fill")
+
+        case 2:
+            return ("Your neck is slouching", .orange, "arrow.backward.circle")
+
+        case 3:
+            return ("Your spine is slouching", .orange, "arrow.forward.circle")
+
+        case 4:
+            return ("Your back is leaning left", .orange, "arrow.left.circle")
+
+        case 5:
+            return ("Your back is leaning right", .orange, "arrow.right.circle")
+
+        case 6:
+            return ("You have several areas that need to be improved", .red, "exclamationmark.triangle.fill")
+
+        default:
+            return ("Waiting for posture data...", .gray, "hourglass")
+        }
+    }
+    
     var isTodaySelected: Bool {
         Calendar.current.isDateInToday(postura.selectedDate)
     }
@@ -66,7 +84,6 @@ struct ConnectedView: View {
     }
 
 
-
     var body: some View {
         VStack(spacing: 24) {
             Text("Connected")
@@ -74,6 +91,24 @@ struct ConnectedView: View {
                 .fontWeight(.bold)
                 .foregroundColor(.green)
 
+            // MARK: - Posture Status
+
+            VStack(spacing: 8) {
+                HStack(spacing: 10) {
+                    Image(systemName: postureStatus.icon)
+
+                    Text(postureStatus.text)
+                        .font(.headline)
+                }
+            }
+            .foregroundColor(postureStatus.color)
+            .padding()
+            .frame(maxWidth: .infinity)
+            .background(
+                postureStatus.color.opacity(0.12)
+            )
+            .cornerRadius(12)
+            
             // MARK: - Stats
             VStack(spacing: 8) {
                 HStack {
@@ -140,8 +175,6 @@ struct ConnectedView: View {
             
             //MARK: Statistic Summaries
             summaryBanner(for: postura.selectedDate)
-            
-            PressureCushionView(pressurePoints: livePressure)
 
             if let summary = improvementSummary {
                 VStack{

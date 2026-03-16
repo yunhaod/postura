@@ -44,7 +44,7 @@ void setup() {
 }
 
 void loop() {
-    BLE.poll();
+    BLEDevice central = BLE.central();
 
     // Replace with real IMU readings
     float x = 0.0, y = 0.0, z = 0.0;
@@ -66,6 +66,16 @@ void loop() {
 
     Serial.print("Predicted Posture: ");
     Serial.println(predicted_posture);
+    if (central) {
+        Serial.print("Connected to: ");
+        Serial.println(central.address());
 
-    delay(100);
+    while (central.connected()) {
+        if (send_status == true){
+            PostureChar.writeValue(predicted_posture);  // send to iOS
+        }
+    }
+
+    Serial.println("Disconnected");
+  }
 }

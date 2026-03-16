@@ -16,7 +16,7 @@ class BLEManager: NSObject, ObservableObject,
     @Published var connectedPeripheral: CBPeripheral?
     @Published var isConnected: Bool = false
     @Published var isTracking = false
-    @Published var isPostureGood: Int8 = 0
+    @Published var PostureStatus: Int8 = 0
     @Published var peripherals: [CBPeripheral] = []
 
     var centralManager: CBCentralManager!
@@ -123,9 +123,9 @@ class BLEManager: NSObject, ObservableObject,
  
             // determine if the posture data has changed, sending 10 means good
             //other numbers mean something in the cushion isn't fulfilled
-            let newIsGood = Int8(status)
-    guard newIsGood != isPostureGood else { return }
-        isPostureGood = newIsGood
+            let newStatus = Int8(status)
+    guard newStatus != PostureStatus else { return }
+        PostureStatus = newStatus
     }
     
     func disconnect() {
