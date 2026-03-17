@@ -1,152 +1,218 @@
+<div align="center">
+
+<img src="https://github.com/yunhaod/postura/blob/main/imgs/Postura_image.png" width="220" alt="Postura Logo"/>
+
 # Postura
-### Senior Design Project – Impact Innovation Lab
 
-<p align="center">
-  <img src="https://github.com/yunhaod/postura/blob/main/imgs/Postura_image.png" width="250">
-</p>
+**An Embedded Smart Cushion for Real-Time Posture Classification**
 
-**Postura** is an embedded smart cushion that uses onboard sensors and a machine learning model to detect and classify a user's sitting posture.
+*Senior Design Project · Impact Innovation Lab*
 
-The system collects sensor data from the cushion, runs a lightweight ML model on the device, and sends posture predictions to an iOS application via Bluetooth Low Energy (BLE).
-
-The iOS app displays:
-- Current posture classification
-- Whether the posture is **good or bad**
-- Duration spent in each posture
+</div>
 
 ---
 
-# System Overview
+## Table of Contents
 
-**Hardware**
-- Embedded cushion with multiple sensors
-- Microcontroller: **Arduino Nano 33 BLE**
-
-**Software**
-- Sensor data collection via BLE
-- Python scripts for dataset collection
-- Neural network model trained in Jupyter Notebook
-- TensorFlow Lite model deployed to the microcontroller
-- iOS app for visualization and feedback
-
----
-
-# Sensors Used
-
-The cushion collects data from the following sensors:
-
-- Left Top Pressure
-- Right Top Pressure
-- Left Bottom Pressure
-- Right Bottom Pressure
-- IR Sensor
-- Flex Sensor
-
-These values are used as features for the posture classification model.
+1. [Project Summary](#project-summary)
+2. [System Architecture](#system-architecture)
+3. [Hardware & Sensors](#hardware--sensors)
+4. [Posture Classes](#posture-classes)
+5. [Step 1 — Collecting Training Data](#step-1--collecting-training-data)
+6. [Step 2 — Data Preprocessing](#step-2--data-preprocessing)
+7. [Step 3 — Training the Model](#step-3--training-the-model)
+8. [Step 4 — Deploying to the Microcontroller](#step-4--deploying-to-the-microcontroller)
+9. [iOS App](#ios-app)
+10. [Training Data](#training-data)
 
 ---
 
-# Posture Classification 
+## Project Summary
 
-The system first determines whether posture is **good or bad**.  
-Bad posture is further classified into more specific categories.
+**Postura** is an embedded smart cushion that detects and classifies a user's sitting posture using onboard pressure and flex sensors. A lightweight neural network runs directly on the microcontroller — no cloud or external server required — and sends posture predictions to an iOS app via **Bluetooth Low Energy (BLE)**.
 
-### Good
-- Good posture
+The iOS app gives the user real-time feedback on:
+- Their **current posture classification** (e.g., spine slouch, left lean)
+- Whether that posture is **good or bad**
+- **How long** they've spent in each posture throughout the session
 
-### Bad
-- Neck slouching
-- Spine slouch
-- Left leaning
-- Right leaning
-- Severe slouch ("everything bad")
+The end-to-end pipeline spans hardware, embedded firmware, machine learning, and mobile development.
 
 ---
 
-# Training Data
+## System Architecture
 
-Training datasets can be found here:
+The diagram below shows how data flows through the full system — from raw sensor readings on the cushion all the way to posture feedback on the phone.
 
-**Google Drive:**  
-https://drive.google.com/drive/folders/1llwXYXDqBAFsbgVDumwpWMneEyu6bSd-
-
----
-
-# Collecting Sensor Data
-
-To collect training data:
-
-1. Upload the Arduino sketch
-
-2. Run the Python script
-
-The system will:
-
-1. Read live sensor values from the cushion
-2. Transmit the data over **BLE**
-3. Store the sensor readings in a **CSV file**
-
-The CSV dataset can then be used for training the model in the Jupyter notebook.
-
----
-
-# Data Preprocessing
-
-Before training, sensor data must be **standardized** so that no feature dominates the model due to scale differences.
-
-Example:
-
-- One sensor range: **-500 to 500**
-- Another sensor range: **-30 to 30**
-
-Without normalization, the larger-range feature could bias the model.
-
-We apply **standardization** using the following transformation:
-
-$$
-x' = \frac{x - \mu}{\sigma}
-$$
-
-Where:
-
-- $x$ = raw sensor value  
-- $\mu$ = mean of the feature (computed from the training set)  
-- $\sigma$ = standard deviation of the feature
-
-Important:
-
-- Mean and standard deviation are computed **only from the training dataset**
-- The same transformation is then applied to validation and test data
+```
+┌─────────────────────────────┐
+│        Smart Cushion        │
+│                             │
+│  Pressure Sensors (×4)      │
+│  IR Sensor                  │
+│  Flex Sensor                │
+│             │               │
+│             ▼               │
+│  Arduino Nano 33 BLE        │
+│  └─ TFLite Model Inference  │
+└─────────────┬───────────────┘
+              │  BLE
+              ▼
+┌─────────────────────────────┐
+│         iOS App             │
+│                             │
+│  • Posture classification   │
+│  • Good / bad indicator     │
+│  • Duration per posture     │
+└─────────────────────────────┘
+```
 
 ---
 
-# Model Training
+## Hardware & Sensors
 
-The training workflow is performed in the **Jupyter Notebook**.
+**Microcontroller:** Arduino Nano 33 BLE
 
-Steps:
+The cushion uses six sensor channels as input features to the ML model:
 
-1. Load collected CSV data
-2. Normalize sensor features
-3. Train a simple neural network classifier
-4. Convert the trained model to **TensorFlow Lite**
-
----
-
-# Deployment to the Microcontroller
-
-The trained model is converted into a **TFLite model** and then exported as a **C header file**.
-
-This header file must be placed in the same directory as the Arduino firmware.
-
-The Arduino Nano 33 BLE will then:
-
-1. Load the TFLite model
-2. Run inference on incoming sensor data
-3. Send posture predictions to the iOS app via BLE
+| Sensor | Location / Role |
+|---|---|
+| Left Top Pressure | Upper-left region of the seat |
+| Right Top Pressure | Upper-right region of the seat |
+| Left Bottom Pressure | Lower-left region of the seat |
+| Right Bottom Pressure | Lower-right region of the seat |
+| IR Sensor | Detects whether a user is seated |
+| Flex Sensor | Measures curvature of the sitter's back |
 
 ---
 
-# Runtime System Flow
-Sensors → Arduino Nano 33 BLE → ML Inference (TFLite) → BLE Transmission → iOS App → Posture Feedback
+## Posture Classification
 
+It determines whether posture is good or bad, and if bad, classifies the specific type. This keeps the problem structured and makes it easier to give actionable feedback.
+
+| Label | Good/Bad | Description |
+|---|---|---|
+| Good posture | ✅ Good | Balanced, upright sitting position |
+| Neck slouching | ❌ Bad | Head and neck pushed forward |
+| Spine slouch | ❌ Bad | Rounded or collapsed lower back |
+| Left leaning | ❌ Bad | Body weight shifted to the left |
+| Right leaning | ❌ Bad | Body weight shifted to the right |
+| Severe slouch | ❌ Bad | Multiple bad posture patterns simultaneously |
+
+---
+
+## Step 1 — Collecting Training Data
+
+Before the model can be trained, labeled sensor data must be collected for each posture class.
+
+**How it works:**
+1. Upload the Arduino sketch to the Nano 33 BLE
+2. Sit in the target posture on the cushion
+3. Run the Python data collection script
+
+The script will:
+- Connect to the Arduino over BLE
+- Stream live sensor readings from all six channels
+- Save the readings to a labeled **CSV file**
+
+One CSV is collected per posture class, then merged for training. The resulting dataset contains rows of six sensor values, each labeled with a posture class.
+
+> 📁 Pre-collected datasets are available on [Google Drive](https://drive.google.com/drive/folders/1llwXYXDqBAFsbgVDumwpWMneEyu6bSd-)
+
+---
+
+## Step 2 — Data Preprocessing
+
+Raw sensor values cannot be fed directly into the model because the sensors operate on very different scales. For example:
+
+| Sensor | Approximate Range |
+|---|---|
+| Pressure sensors | –500 to 500 |
+| Flex sensor | –30 to 30 |
+
+Without normalization, the pressure sensors would dominate the model simply because their values are larger — not because they're more informative. To fix this, we apply **z-score standardization** to each feature:
+
+$$x' = \frac{x - \mu}{\sigma}$$
+
+| Symbol | Meaning |
+|---|---|
+| $x$ | Raw sensor value |
+| $\mu$ | Mean of that feature across the training set |
+| $\sigma$ | Standard deviation of that feature across the training set |
+| $x'$ | Normalized value fed into the model |
+
+> ⚠️ **Important:** $\mu$ and $\sigma$ are computed **only from training data**. The same values are then applied to normalize the validation and test sets — this prevents data leakage.
+
+---
+
+## Step 3 — Training the Model
+
+Model training is done in the **Jupyter Notebook** and follows these steps:
+
+**1. Load the CSV dataset**
+
+Combine all per-posture CSVs into a single dataframe with a label column.
+
+**2. Normalize features**
+
+Apply the standardization formula from Step 2 to all six sensor columns.
+
+**3. Train the neural network**
+
+A simple feedforward neural network is trained to map the six normalized sensor values to a posture class. The model is kept small deliberately — it needs to fit on a microcontroller.
+
+**4. Convert to TensorFlow Lite**
+
+TFLite is a compressed, optimized format designed for microcontrollers and mobile devices. The trained Keras model is converted like so:
+
+```python
+converter = tf.lite.TFLiteConverter.from_keras_model(model)
+tflite_model = converter.convert()
+```
+
+**5. Export as a C header file**
+
+The TFLite binary is embedded into a C array and saved as a `.h` header file that the Arduino firmware can include directly.
+
+---
+
+## Step 4 — Deploying to the Microcontroller
+
+Once the model is exported, place the generated header file in the Arduino firmware directory:
+
+```
+arduino_firmware/
+├── postura_firmware.ino
+└── postura_model.h        ← generated in Step 3
+```
+
+At runtime, the Arduino will:
+
+1. **Load** the TFLite model from flash memory
+2. **Read** all six sensor channels
+3. **Run inference** — passing sensor values through the model to get a posture prediction
+4. **Transmit** the predicted class to the iOS app via BLE
+
+---
+
+## iOS App
+
+The companion iOS app connects to the cushion over BLE and displays three pieces of information:
+
+- **Posture classification** — what posture the user is currently in (e.g., "Spine Slouch")
+- **Quality indicator** — a simple good / bad label
+- **Duration tracking** — how long the user has been in each posture during the current session
+
+---
+
+## Training Data
+
+Jupiter notebook and pre-collected training datasets for all posture classes are available here:
+
+📁 **Google Drive:** https://drive.google.com/drive/folders/1llwXYXDqBAFsbgVDumwpWMneEyu6bSd-
+
+---
+
+<div align="center">
+  <sub>Built with TensorFlow Lite · BLE · iOS · Arduino</sub>
+</div>
