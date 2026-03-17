@@ -81,7 +81,7 @@ The cushion uses six sensor channels as input features to the ML model:
 | Right Top Pressure | Upper-right region of the seat |
 | Left Bottom Pressure | Lower-left region of the seat |
 | Right Bottom Pressure | Lower-right region of the seat |
-| IR Sensor | Detects whether a user is seated |
+| IR Sensor | Measures how far the neck is to the seat|
 | Flex Sensor | Measures curvature of the sitter's back |
 
 ---
