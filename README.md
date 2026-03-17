@@ -181,8 +181,8 @@ The TFLite binary is embedded into a C array and saved as a `.h` header file tha
 Once the model is exported, place the generated header file in the Arduino firmware directory:
 
 ```
-arduino_firmware/
-├── postura_firmware.ino
+postura_data_training/Postura_BLE_GetTrainingData
+├── Postura_BLE_GetTrainingData
 └── postura_model.h        ← generated in Step 3
 ```
 
