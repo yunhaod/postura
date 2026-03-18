@@ -13,7 +13,6 @@ void BLEsetup(){
   BLE.setAdvertisedService(PostureService);
 
   StartBLEservice();
-
   BLE.setEventHandler(BLEConnected, connect_callback);
   BLE.setEventHandler(BLEDisconnected, disconnect_callback);
 

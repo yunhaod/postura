@@ -36,6 +36,7 @@ int max_index(float* arr, int size) {
 void setup() {
     Serial.begin(115200);
     BLEsetup();
+
     const tflite::Model* model = tflite::GetModel(postura_model_tflite);
     if (model->version() != TFLITE_SCHEMA_VERSION) {
         Serial.println("Model schema mismatch!");

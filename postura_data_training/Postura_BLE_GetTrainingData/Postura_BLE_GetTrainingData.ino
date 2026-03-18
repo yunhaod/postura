@@ -4,8 +4,8 @@
 
 BLEService PostureService = BLEService("a3721400-00b0-4240-ba50-05ca45bf8abc");
 BLECharacteristic SensorChar = BLECharacteristic("b3721400-00b0-4240-ba50-05ca45bf8dec");
-int pins[NUM_PSENSORS] = {A0, A1, A2, A3};
-#define FlexSensorPin A4
+int pins[NUM_PSENSORS] = {A4, A1, A2, A3};
+#define FlexSensorPin A0
 
 void setup() {
   // put your setup code here, to run once:
@@ -14,6 +14,7 @@ void setup() {
   Bluefruit.begin();
   Bluefruit.setTxPower(4);  
   Bluefruit.setName("Postura");
+  Bluefruit.Advertising.addName();
 
   StartBLEservice();
 
@@ -56,8 +57,8 @@ void StartBLEservice(){
 
   SensorChar.setProperties(CHR_PROPS_NOTIFY);
   SensorChar.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
-  //5 floats and 1 int16_t is transmitted, 5 x 4 + 1 x 2 = 22 bytes
-  SensorChar.setFixedLen(22);   
+  // 6 int16 = 12 bytes
+  SensorChar.setFixedLen(12);   
   SensorChar.begin();
 }
 
@@ -77,10 +78,8 @@ void loop() {
         }
       float rFlex = ReadFlexSensor(FlexSensorPin);
       int16_t irRaw = ReadIRSensor();
-      uint16_t sensor_data[6] = {readings[0],readings[1],readings[2],readings[3],rFlex, irRaw};
-      SensorChar.notify(sensor_data, 7);
+      int16_t sensor_data[6] = {readings[0],readings[1],readings[2],readings[3],rFlex, irRaw};
+      SensorChar.notify(sensor_data, sizeof(sensor_data));
       Serial.println("Sensor Data Sent sent");
   }
 }
-
-
