@@ -9,7 +9,7 @@ int pins[NUM_PSENSORS] = {A4, A1, A2, A3};
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(9600);
+  Serial.begin(115200);
   Bluefruit.configUuid128Count(5);
   Bluefruit.begin();
   Bluefruit.setTxPower(4);  
@@ -57,8 +57,8 @@ void StartBLEservice(){
 
   SensorChar.setProperties(CHR_PROPS_NOTIFY);
   SensorChar.setPermission(SECMODE_OPEN, SECMODE_NO_ACCESS);
-  // 6 int16 = 12 bytes
-  SensorChar.setFixedLen(12);   
+  // 5 int16 = 10 bytes
+  SensorChar.setFixedLen(10);   
   SensorChar.begin();
 }
 
@@ -66,7 +66,7 @@ void loop() {
   // put your main code here, to run repeatedly:
 
   if (Bluefruit.connected()){
-      // the expected data fields are = ["LT", 'RT', 'LB', 'RB', "Flex", 'IR']
+      // the expected data fields are = ["LT", 'RT', 'LB', 'RB', "Flex"]
       //get the data from the sensors
       float readings[NUM_PSENSORS];
         if (ReadPressureSensors(readings)) {
@@ -77,9 +77,36 @@ void loop() {
             Serial.println("One or more sensors invalid.");
         }
       float rFlex = ReadFlexSensor(FlexSensorPin);
-      int16_t irRaw = ReadIRSensor();
-      int16_t sensor_data[6] = {readings[0],readings[1],readings[2],readings[3],rFlex, irRaw};
+      int16_t sensor_data[5] = {readings[0],readings[1],readings[2],readings[3],rFlex};
       SensorChar.notify(sensor_data, sizeof(sensor_data));
       Serial.println("Sensor Data Sent sent");
   }
 }
+
+
+
+//TEST CODE 
+// #include <Arduino.h>
+// #include <Wire.h>
+// #include "sensors.h"
+
+// int pins[NUM_PSENSORS] = {A4, A1, A2, A3}; // adjust to match yours
+
+// void setup() {
+//   Serial.begin(115200);
+//   while (!Serial) delay(10);
+//   PressureSensorSetup(pins);
+// }
+
+// void loop() {
+//   float readings[NUM_PSENSORS];
+//   if (ReadPressureSensors(readings)) {
+//     for (int i = 0; i < 4; i++) {
+//       Serial.print("P"); Serial.print(i); Serial.print(": ");
+//       Serial.print(readings[i]); Serial.println(" ohms");
+//     }
+//   } else {
+//     Serial.println("One or more pressure sensors invalid.");
+//   }
+//   delay(300);
+// }
