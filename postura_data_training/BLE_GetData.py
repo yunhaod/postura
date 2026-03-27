@@ -9,14 +9,13 @@ async def main():
     devices = await BleakScanner.discover()
     logger = None
     print(
-        "1 for good, 2 for neck slouching, 3 for spine slouch, 4 for left leaning, 5 for right leaning, 6 for everything bad")
+        "1 for good, 2 for spine slouch, 3 for left leaning, 4 for right leaning, 5 for everything bad")
     classification = int(input("What is the posture status for these data?"))
     dict = {1: "Good",
-            2: "Neck Slouching",
-            3: "Spine Slouching",
-            4: "Left Leaning",
-            5: "Right Leaning",
-            6: "Everything is bad"}
+            2: "Spine Slouching",
+            3: "Left Leaning",
+            4: "Right Leaning",
+            5: "Everything is bad"}
     filename = str(classification) + "_data.csv"
     for d in devices:
         if KeyValueCoding.getKey(d.details[0], 'name') == 'Postura':
@@ -38,7 +37,7 @@ async def main():
         sensorCharacteristic = "b3721400-00b0-4240-ba50-05ca45bf8dec"
 
         with open(filename, "w", newline='') as f:
-            fields = ["LT", 'RT', 'LB', 'RB', 'Flex', 'IR', 'Classification']
+            fields = ["LT", 'RT', 'LB', 'RB', 'Flex', 'Classification']
             writer = csv.writer(f)
             writer.writerow(fields)
 
