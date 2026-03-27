@@ -49,7 +49,6 @@ The diagram below shows how data flows through the full system — from raw sens
 │        Smart Cushion        │
 │                             │
 │  Pressure Sensors (×4)      │
-│  IR Sensor                  │
 │  Flex Sensor                │
 │             │               │
 │             ▼               │
@@ -81,7 +80,6 @@ The cushion uses six sensor channels as input features to the ML model:
 | Right Top Pressure | Upper-right region of the seat |
 | Left Bottom Pressure | Lower-left region of the seat |
 | Right Bottom Pressure | Lower-right region of the seat |
-| IR Sensor | Measures how far the neck is to the seat|
 | Flex Sensor | Measures curvature of the sitter's back |
 
 ---
@@ -93,7 +91,6 @@ It determines whether posture is good or bad, and if bad, classifies the specifi
 | Label | Good/Bad | Description |
 |---|---|---|
 | Good posture | ✅ Good | Balanced, upright sitting position |
-| Neck slouching | ❌ Bad | Head and neck pushed forward |
 | Spine slouch | ❌ Bad | Rounded or collapsed lower back |
 | Left leaning | ❌ Bad | Body weight shifted to the left |
 | Right leaning | ❌ Bad | Body weight shifted to the right |
@@ -112,10 +109,10 @@ Before the model can be trained, labeled sensor data must be collected for each 
 
 The script will:
 - Connect to the Arduino over BLE
-- Stream live sensor readings from all six channels
+- Stream live sensor readings from all 5 channels
 - Save the readings to a labeled **CSV file**
 
-One CSV is collected per posture class, then merged for training. The resulting dataset contains rows of six sensor values, each labeled with a posture class.
+One CSV is collected per posture class, then merged for training. The resulting dataset contains rows of five sensor values, each labeled with a posture class.
 
 > 📁 Pre-collected datasets are available on [Google Drive](https://drive.google.com/drive/folders/1llwXYXDqBAFsbgVDumwpWMneEyu6bSd-)
 
@@ -155,7 +152,7 @@ Combine all per-posture CSVs into a single dataframe with a label column.
 
 **2. Normalize features**
 
-Apply the standardization formula from Step 2 to all six sensor columns.
+Apply the standardization formula from Step 2 to all five sensor columns.
 
 **3. Train the neural network**
 
