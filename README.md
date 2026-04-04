@@ -117,7 +117,7 @@ One CSV is collected per posture class, then merged for training. The resulting 
 Raw sensor values cannot be fed directly into the model because the sensors sensitivity is roughly a little different
 
 
-$$x' = \frac{x - \mu}{\sigma}$$
+$$x' = \frac{x - M}{IQR}$$
 
 | Symbol | Meaning |
 |---|---|
