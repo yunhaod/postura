@@ -32,8 +32,7 @@
 **Postura** is an embedded smart cushion that detects and classifies a user's sitting posture using onboard pressure and flex sensors. A lightweight neural network runs directly on the microcontroller — no cloud or external server required — and sends posture predictions to an iOS app via **Bluetooth Low Energy (BLE)**.
 
 The iOS app gives the user real-time feedback on:
-- Their **current posture classification** (e.g., spine slouch, left lean)
-- Whether that posture is **good or bad**
+- Whether their posture is **good or bad**
 - **How long** they've spent in each posture throughout the session
 
 The end-to-end pipeline spans hardware, embedded firmware, machine learning, and mobile development.
