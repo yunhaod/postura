@@ -114,25 +114,19 @@ One CSV is collected per posture class, then merged for training. The resulting 
 
 ## Step 2 — Data Preprocessing
 
-Raw sensor values cannot be fed directly into the model because the sensors operate on very different scales. For example:
+Raw sensor values cannot be fed directly into the model because the sensors sensitivity is roughly a little different
 
-| Sensor | Approximate Range |
-|---|---|
-| Pressure sensors | –500 to 500 |
-| Flex sensor | –30 to 30 |
-
-Without normalization, the pressure sensors would dominate the model simply because their values are larger — not because they're more informative. To fix this, we apply **z-score standardization** to each feature:
 
 $$x' = \frac{x - \mu}{\sigma}$$
 
 | Symbol | Meaning |
 |---|---|
 | $x$ | Raw sensor value |
-| $\mu$ | Mean of that feature across the training set |
-| $\sigma$ | Standard deviation of that feature across the training set |
+| $M$ | Median of that feature across the training set |
+| $IQR$ | Interquartile range of that feature across the training set |
 | $x'$ | Normalized value fed into the model |
 
-> ⚠️ **Important:** $\mu$ and $\sigma$ are computed **only from training data**. The same values are then applied to normalize the validation and test sets — this prevents data leakage.
+> ⚠️ **Important:** $\M$ and $\IQR$ are computed **only from training data**. The same values are then applied to normalize the validation and test sets — this prevents data leakage.
 
 ---
 
