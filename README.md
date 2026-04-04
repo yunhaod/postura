@@ -49,7 +49,6 @@ The diagram below shows how data flows through the full system — from raw sens
 │        Smart Cushion        │
 │                             │
 │  Pressure Sensors (×4)      │
-│  Flex Sensor                │
 │             │               │
 │             ▼               │
 │  Arduino Nano 33 BLE        │
@@ -72,7 +71,7 @@ The diagram below shows how data flows through the full system — from raw sens
 
 **Microcontroller:** Arduino Nano 33 BLE
 
-The cushion uses six sensor channels as input features to the ML model:
+The cushion uses four sensor channels as input features to the ML model:
 
 | Sensor | Location / Role |
 |---|---|
@@ -80,7 +79,6 @@ The cushion uses six sensor channels as input features to the ML model:
 | Right Top Pressure | Upper-right region of the seat |
 | Left Bottom Pressure | Lower-left region of the seat |
 | Right Bottom Pressure | Lower-right region of the seat |
-| Flex Sensor | Measures curvature of the sitter's back |
 
 ---
 
@@ -91,10 +89,7 @@ It determines whether posture is good or bad, and if bad, classifies the specifi
 | Label | Good/Bad | Description |
 |---|---|---|
 | Good posture | ✅ Good | Balanced, upright sitting position |
-| Spine slouch | ❌ Bad | Rounded or collapsed lower back |
-| Left leaning | ❌ Bad | Body weight shifted to the left |
-| Right leaning | ❌ Bad | Body weight shifted to the right |
-| Severe slouch | ❌ Bad | Multiple bad posture patterns simultaneously |
+| Bad posture | ❌ Bad | Rounded, collapsed lower back, other bad postures |
 
 ---
 
@@ -109,7 +104,7 @@ Before the model can be trained, labeled sensor data must be collected for each 
 
 The script will:
 - Connect to the Arduino over BLE
-- Stream live sensor readings from all 5 channels
+- Stream live sensor readings from all 4 channels
 - Save the readings to a labeled **CSV file**
 
 One CSV is collected per posture class, then merged for training. The resulting dataset contains rows of five sensor values, each labeled with a posture class.
