@@ -60,7 +60,7 @@ bool ReadPressureSensors(float out[NUM_PSENSORS])
         pressureSensors[i].idx = (pressureSensors[i].idx + 1) % FILTER_N;
 
         float avg = (float)pressureSensors[i].sum / (float)FILTER_N;
-        out[i] = estimateRsensorOhm(avg);
+        out[i] = estimateRsensorOhm(avg) / 1000;
 
         if (out[i] < 0) valid = false;
     }

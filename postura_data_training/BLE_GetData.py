@@ -9,14 +9,11 @@ async def main():
     devices = await BleakScanner.discover()
     logger = None
     print(
-        "1 for good, 2 for spine slouch, 3 for left leaning, 4 for right leaning, 5 for everything bad")
+        "1 for good, 2 for bad")
     classification = int(input("What is the posture status for these data?"))
-    dict = {1: "Good",
-            2: "Spine Slouching",
-            3: "Left Leaning",
-            4: "Right Leaning",
-            5: "Everything is bad"}
-    filename = str(classification) + "_data.csv"
+    dict = {1:"Good",
+            2: "Bad"}
+    filename = "1_data.csv"
     for d in devices:
         if KeyValueCoding.getKey(d.details[0], 'name') == 'Postura':
             logger = d
@@ -36,24 +33,21 @@ async def main():
         # TODO: Enter the new characteristics id
         sensorCharacteristic = "b3721400-00b0-4240-ba50-05ca45bf8dec"
 
-        with open(filename, "w", newline='') as f:
-            fields = ["LT", 'RT', 'LB', 'RB', 'Flex', 'Classification']
+        with open(filename, "a", newline='') as f:
+            fields = ["LT", 'RT', 'LB', 'RB', 'Classification']
             writer = csv.writer(f)
-            writer.writerow(fields)
+            #writer.writerow(fields)
 
             try:
                 while True:
                     # Read characteristics
                     def handle_data(sender, data):
-                        value = struct.unpack('<h', data)[0]  # single int16
-                        print(f"Raw int16: {value}  →  actual: {value / 100.0:.2f}")
+                        value = struct.unpack('<4h', data)
 
                         print("Decoded:", value)
-                        '''
-                        row = list(values[:6]) + [classification]  # keep first 6 if those are your sensors
+                        row = list(value[:4]) + [classification]  # keep first 4
                         writer.writerow(row)
                         f.flush()
-                        '''
 
                     await client.start_notify(sensorCharacteristic, handle_data)
 
