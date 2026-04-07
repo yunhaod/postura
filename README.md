@@ -126,7 +126,7 @@ $$x' = \frac{x - M}{IQR}$$
 | $IQR$ | Interquartile range of that feature across the training set |
 | $x'$ | Normalized value fed into the model |
 
-> ⚠️ **Important:** $\M$ and $\IQR$ are computed **only from training data**. The same values are then applied to normalize the validation and test sets — this prevents data leakage.
+> ⚠️ **Important:** $M$ and $IQR$ are computed **only from training data**. The same values are then applied to normalize the validation and test sets — this prevents data leakage.
 
 ---
 
