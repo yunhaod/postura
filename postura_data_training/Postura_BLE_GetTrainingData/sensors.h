@@ -5,9 +5,8 @@
 #include <math.h>
 #include <Wire.h>
 
-#define FILTER_N 16
-#define NUM_PSENSORS 5
-#define AK9752_ADDR 0x64
+#define FILTER_N 8
+#define NUM_PSENSORS 4
 
 typedef struct{
     int      pin;
@@ -20,9 +19,5 @@ extern PressureSensor pressureSensors[NUM_PSENSORS];
 
 void  PressureSensorSetup(int pins[NUM_PSENSORS]);
 bool  ReadPressureSensors(float out[NUM_PSENSORS]);
-void FlexSensorSetup(int pin);
-float ReadFlexSensor(int pin);
-void IRSensorSetup();
-int16_t ReadIRSensor();
 
 #endif

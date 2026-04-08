@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <math.h>
 
-#define FILTER_N 16
+#define FILTER_N 4
 #define NUM_PSENSORS 5
 typedef struct{
     int      pin;

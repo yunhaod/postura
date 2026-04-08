@@ -4,7 +4,7 @@
 
 BLEService PostureService = BLEService("a3721400-00b0-4240-ba50-05ca45bf8abc");
 BLECharacteristic SensorChar = BLECharacteristic("b3721400-00b0-4240-ba50-05ca45bf8dec");
-//Python expects : LT, RT, LB, RB, Flex
+//Python expects : LT, RT, LB, RB
 
 ////looking at it from front
 //pin A0 is top right, pin A2 is bottom right
@@ -39,7 +39,6 @@ void setup() {
   Bluefruit.Advertising.start();
   Serial.println("Start advertising");
   PressureSensorSetup(pins);
-  //IRSensorSetup();
 }
 
 // callback invoked when central connects
@@ -82,16 +81,13 @@ void loop() {
       // the expected data fields are = ["LT", 'RT', 'LB', 'RB']
       //get the data from the sensors
       float readings[NUM_PSENSORS];
-        if (ReadPressureSensors(readings)) {
-            for (int i = 0; i < NUM_PSENSORS; i++) {
-                Serial.println(readings[i]);
-            }
-        } else {
-            Serial.println("One or more sensors invalid.");
-        }
+      ReadPressureSensors(readings);
+      for (int i = 0; i < NUM_PSENSORS; i++) {
+          Serial.println(readings[i]);
+      }
       int16_t sensor_data[4] = {readings[0],readings[1],readings[2],readings[3]};
       SensorChar.notify(sensor_data, sizeof(sensor_data));
       Serial.println("Sensor Data Sent sent");
   }
-  delay(1000);
+  delay(500);
 }
