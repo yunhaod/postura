@@ -5,8 +5,22 @@
 #include "postura_ble.h"
 #include "postura_model.h" //this is the model we've trained and has been converted into a c array file, needs to be flashed
 
-const int kInputSize = 11;
-const int kOutputSize = 2;
+const int kInputSize = 9;
+const int kOutputSize = 1;
+
+
+//Python expects : LT, RT, LB, RB
+
+////looking at it from front
+//pin A0 is top right, pin A2 is bottom right
+//pin A1 is top left, pin A3 is bottom left
+
+int pins[NUM_PSENSORS] = {A1, A0, A3, A2};
+//                        LT  RT  LB  RB
+
+//for normalizing data set
+const float robust_center[4] = {258.5, 375.5, 360.0, 249.5};
+const float robust_scale[4]  = {440.25, 833.25, 824.75, 997.0};
 
 constexpr int kTensorArenaSize = 8 * 1024;
 alignas(16) uint8_t tensor_arena[kTensorArenaSize];
@@ -42,23 +56,37 @@ void setup() {
     }
 
     Serial.println("Model loaded OK");
+    PressureSensorSetup(pins);
 }
 
 void loop() {
     BLEDevice central = BLE.central();
+    float readings[NUM_PSENSORS];
+    ReadPressureSensors(readings);
+    for (int i = 0; i < NUM_PSENSORS; i++) {
+        Serial.println(readings[i]);
+    }
 
-    // Replace with real IMU readings
-    float x = 1, y = 1, z = 1;
-    float a = 1, b = 1, c = 1;
-    float d = 1, e = 1, f = 1;
-    float g = 1, h = 1;
-    float sensor_data[kInputSize] = {a, b, c, x, y, z, d, e, f, g, h};
+    int16_t lt_invalid    = (readings[0] < 0.0f) ? 1 : 0;
+    int16_t rt_invalid    = (readings[1] < 0.0f) ? 1 : 0;
+    int16_t lb_invalid    = (readings[2] < 0.0f) ? 1 : 0;
+    int16_t rb_invalid    = (readings[3] < 0.0f) ? 1 : 0;
+    int16_t total_invalid = lt_invalid + rt_invalid + lb_invalid + rb_invalid;
 
     float* input = interpreter->input(0)->data.f;
-    for (int i = 0; i < kInputSize; i++) {
-        //apply the normalization of each sensor data and then invoke inference
-        input[i] = (sensor_data[i]);
+
+    // Scale pressure cols — zero invalid first 
+    for (int i = 0; i < 4; i++) {
+        float val = (readings[i] < 0.0f) ? 0.0f : readings[i];
+        input[i] = (val - robust_center[i]) / robust_scale[i];
     }
+
+    // Flags pass through unscaled
+    input[4] = (float)total_invalid;
+    input[5] = (float)lt_invalid;
+    input[6] = (float)rt_invalid;
+    input[7] = (float)lb_invalid;
+    input[8] = (float)rb_invalid;
 
     if (interpreter->Invoke() != kTfLiteOk) {
         Serial.println("Invoke failed!");
@@ -66,20 +94,19 @@ void loop() {
     }
 
     float* output = interpreter->output(0)->data.f;
-    int predicted_posture = max_index(output, kOutputSize);
+    int predicted_posture = (output[0] > 0.5f) ? 1 : 0;
 
     Serial.print("Predicted Posture: ");
     Serial.println(predicted_posture);
     if (central) {
         Serial.print("Connected to: ");
         Serial.println(central.address());
-
-    while (central.connected()) {
-        if (send_status == true){
-            PostureChar.writeValue((uint8_t)predicted_posture);  // send to iOS
+        while (central.connected()) {
+            if (send_status == true) {
+                PostureChar.writeValue((uint8_t)predicted_posture);
+            }
         }
+        Serial.println("Disconnected");
     }
-
-    Serial.println("Disconnected");
-  }
+    delay(400);
 }
