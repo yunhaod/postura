@@ -8,6 +8,8 @@
 #define FILTER_N 6
 #define NUM_PSENSORS 4
 
+extern bool device_connected;
+
 // BLE Service and Characteristics
 extern BLEService PostureService;
 extern BLECharacteristic PostureChar;

@@ -3,24 +3,15 @@
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "postura_ble.h"
-#include "postura_model.h" //this is the model we've trained and has been converted into a c array file, needs to be flashed
+#include "postura_model.h"
 
-const int kInputSize = 9;
+const int kInputSize  = 9;
 const int kOutputSize = 1;
 
+int pins[NUM_PSENSORS] = {A0, A3, A1, A2};
 
-//Python expects : LT, RT, LB, RB
-
-////looking at it from front
-//pin A0 is top right, pin A2 is bottom right
-//pin A1 is top left, pin A3 is bottom left
-
-int pins[NUM_PSENSORS] = {A1, A0, A3, A2};
-//                        LT  RT  LB  RB
-
-//for normalizing data set
-const float robust_center[4] = {258.5, 375.5, 360.0, 249.5};
-const float robust_scale[4]  = {440.25, 833.25, 824.75, 997.0};
+const float robust_center[4] = {260.0, 174.0, 420.0, 323.0};
+const float robust_scale[4]  = {496.0, 352.0, 255.25, 281.25};
 
 constexpr int kTensorArenaSize = 8 * 1024;
 alignas(16) uint8_t tensor_arena[kTensorArenaSize];
@@ -28,17 +19,53 @@ alignas(16) uint8_t tensor_arena[kTensorArenaSize];
 tflite::AllOpsResolver resolver;
 tflite::MicroInterpreter* interpreter = nullptr;
 
-int max_index(float* arr, int size) {
-    int max_i = 0;
-    for (int i = 1; i < size; i++) {
-        if (arr[i] > arr[max_i]) max_i = i;
+int runInference() {
+    float readings[NUM_PSENSORS];
+    ReadPressureSensors(readings);
+
+    for (int i = 0; i < NUM_PSENSORS; i++) {
+        Serial.print("P"); Serial.print(i); Serial.print(": ");
+        Serial.print(readings[i]); Serial.println(" kOhm");
     }
-    return max_i;
+
+    int16_t lt_invalid = (readings[0] < 0.0f) ? 1 : 0;
+    int16_t rt_invalid = (readings[1] < 0.0f) ? 1 : 0;
+    int16_t lb_invalid = (readings[2] < 0.0f) ? 1 : 0;
+    int16_t rb_invalid = (readings[3] < 0.0f) ? 1 : 0;
+    int16_t total_invalid = lt_invalid + rt_invalid + lb_invalid + rb_invalid;
+
+    if (total_invalid == NUM_PSENSORS) {
+        Serial.println("No one seated.");
+        return -1;
+    }
+
+    float* input = interpreter->input(0)->data.f;
+
+    for (int i = 0; i < 4; i++) {
+        float val = (readings[i] < 0.0f)
+                    ? 0.0f : readings[i];
+        input[i] = (val - robust_center[i]) / robust_scale[i];
+    }
+
+    input[4] = (float)total_invalid;
+    input[5] = (float)lt_invalid;
+    input[6] = (float)rt_invalid;
+    input[7] = (float)lb_invalid;
+    input[8] = (float)rb_invalid;
+
+    if (interpreter->Invoke() != kTfLiteOk) {
+        Serial.println("Invoke failed!");
+        return -1;
+    }
+
+    float* output = interpreter->output(0)->data.f;
+    Serial.print("Model output: "); Serial.println(output[0]);
+    return (output[0] > 0.5f) ? 1 : 0;
 }
 
 void setup() {
     Serial.begin(115200);
-    BLEsetup();
+    BLEsetup(); // BLEsetup handles everything including StartBLEservice, don't call it again
 
     const tflite::Model* model = tflite::GetModel(postura_model);
     if (model->version() != TFLITE_SCHEMA_VERSION) {
@@ -60,53 +87,19 @@ void setup() {
 }
 
 void loop() {
-    BLEDevice central = BLE.central();
-    float readings[NUM_PSENSORS];
-    ReadPressureSensors(readings);
-    for (int i = 0; i < NUM_PSENSORS; i++) {
-        Serial.println(readings[i]);
-    }
+    BLE.poll(); 
 
-    int16_t lt_invalid    = (readings[0] < 0.0f) ? 1 : 0;
-    int16_t rt_invalid    = (readings[1] < 0.0f) ? 1 : 0;
-    int16_t lb_invalid    = (readings[2] < 0.0f) ? 1 : 0;
-    int16_t rb_invalid    = (readings[3] < 0.0f) ? 1 : 0;
-    int16_t total_invalid = lt_invalid + rt_invalid + lb_invalid + rb_invalid;
+    if (device_connected && send_status) {
+        int predicted_posture = runInference();
 
-    float* input = interpreter->input(0)->data.f;
+        Serial.print("Predicted Posture: ");
+        Serial.println(predicted_posture);
 
-    // Scale pressure cols — zero invalid first 
-    for (int i = 0; i < 4; i++) {
-        float val = (readings[i] < 0.0f) ? 0.0f : readings[i];
-        input[i] = (val - robust_center[i]) / robust_scale[i];
-    }
-
-    // Flags pass through unscaled
-    input[4] = (float)total_invalid;
-    input[5] = (float)lt_invalid;
-    input[6] = (float)rt_invalid;
-    input[7] = (float)lb_invalid;
-    input[8] = (float)rb_invalid;
-
-    if (interpreter->Invoke() != kTfLiteOk) {
-        Serial.println("Invoke failed!");
-        return;
-    }
-
-    float* output = interpreter->output(0)->data.f;
-    int predicted_posture = (output[0] > 0.5f) ? 1 : 0;
-
-    Serial.print("Predicted Posture: ");
-    Serial.println(predicted_posture);
-    if (central) {
-        Serial.print("Connected to: ");
-        Serial.println(central.address());
-        while (central.connected()) {
-            if (send_status == true) {
-                PostureChar.writeValue((uint8_t)predicted_posture);
-            }
+        if (predicted_posture >= 0) {
+            PostureChar.writeValue((uint8_t)predicted_posture);
+            Serial.println("Wrote posture to BLE");
         }
-        Serial.println("Disconnected");
+
+        delay(400);
     }
-    delay(400);
 }

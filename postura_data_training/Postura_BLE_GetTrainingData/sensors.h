@@ -5,7 +5,7 @@
 #include <math.h>
 #include <Wire.h>
 
-#define FILTER_N 8
+#define FILTER_N 6
 #define NUM_PSENSORS 4
 
 typedef struct{

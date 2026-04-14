@@ -7,11 +7,8 @@
 
 //top left can have connection issue due to wire placement 
 
-int pins[NUM_PSENSORS] = {A1, A0, A3, A2};
+int pins[NUM_PSENSORS] = {A0, A3, A1, A2};
 //                        LT  RT  LB  RB
-
-#define FlexSensorPin A0
-//flex sensor is absolutely useless and would just introduce noise
 
 void setup() {
   Serial.begin(115200);

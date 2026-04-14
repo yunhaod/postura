@@ -197,19 +197,17 @@ struct ConnectedView: View {
             // MARK: - Controls
             if isTodaySelected {
                 Button {
-                    if postura.bleManager.isTracking {
-                        postura.bleManager.writeCommand(4)
+                    if postura.isTracking {
                         postura.stopPostureTracking()
                     } else {
-                        postura.bleManager.writeCommand(3)
                         postura.startPostureTracking()
                     }
                 } label: {
-                    Text(postura.bleManager.isTracking ? "Stop Tracking" : "Start Tracking")
+                    Text(postura.isTracking ? "Stop Tracking" : "Start Tracking")
                 }
                 .buttonStyle(
                     PrimaryButtonStyle(
-                        color: postura.bleManager.isTracking ? .orange : .green
+                        color: postura.isTracking ? .orange : .green
                     )
                 )
             }

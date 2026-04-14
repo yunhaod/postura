@@ -12,7 +12,7 @@ BLECharacteristic SensorChar = BLECharacteristic("b3721400-00b0-4240-ba50-05ca45
 
 //top left can have connection issue due to wire placement 
 
-int pins[NUM_PSENSORS] = {A1, A0, A3, A2};
+int pins[NUM_PSENSORS] = {A0, A3, A1, A2};
 //                        LT  RT  LB  RB
 
 //looking at it from front
