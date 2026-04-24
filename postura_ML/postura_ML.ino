@@ -88,6 +88,14 @@ void setup() {
 
 void loop() {
     BLE.poll(); 
+    // float readings[NUM_PSENSORS];
+    // ReadPressureSensors(readings);
+
+    // for (int i = 0; i < NUM_PSENSORS; i++) {
+    //     Serial.print("P"); Serial.print(i); Serial.print(": ");
+    //     Serial.print(readings[i]); Serial.println(" kOhm");
+    // }
+    // delay(2000);
 
     if (device_connected && send_status) {
         int predicted_posture = runInference();
@@ -102,4 +110,5 @@ void loop() {
 
         delay(400);
     }
+
 }

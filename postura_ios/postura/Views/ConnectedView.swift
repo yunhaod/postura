@@ -5,399 +5,383 @@
 //  Created by YunHao Dong on 12/28/25.
 //
 import SwiftUI
-
+ 
+import SwiftUI
+ 
 struct ConnectedView: View {
     @ObservedObject var postura: PosturaManager
     @State private var showCalendar = false
-    
+    @State private var showStatistics = false
+    @State private var pulseTracking = false
+ 
+    // MARK: - Computed Properties
+ 
     var postureStatus: (text: String, color: Color, icon: String) {
         switch postura.bleManager.PostureStatus {
-
-        case 1:
-            return ("Great posture!", .green, "checkmark.circle.fill")
-
-        case 2:
-            return ("Your neck is slouching", .orange, "arrow.backward.circle")
-
-        case 3:
-            return ("Your spine is slouching", .orange, "arrow.forward.circle")
-
-        case 4:
-            return ("Your back is leaning left", .orange, "arrow.left.circle")
-
-        case 5:
-            return ("Your back is leaning right", .orange, "arrow.right.circle")
-
-        case 6:
-            return ("You have several areas that need to be improved", .red, "exclamationmark.triangle.fill")
-
-        default:
-            return ("Waiting for posture data...", .gray, "hourglass")
+        case 1: return ("Great posture!", .green, "checkmark.circle.fill")
+        case 2: return ("Poor posture", .red, "xmark.circle.fill")
+        default: return ("Waiting for data…", .gray, "hourglass")
         }
     }
-    
+ 
     var isTodaySelected: Bool {
         Calendar.current.isDateInToday(postura.selectedDate)
     }
-
+ 
     var stats: DailyPostureStats {
         postura.stats(for: postura.selectedDate)
     }
-    
-    var yesterdayStats: DailyPostureStats {
-        postura.stats(for: date(daysAgo: 1))
+ 
+    var totalTime: TimeInterval { stats.goodTime + stats.badTime }
+ 
+    var goodPercent: Double {
+        totalTime > 0 ? stats.goodTime / totalTime : 0
     }
-
-    var dayBeforeStats: DailyPostureStats {
-        postura.stats(for: date(daysAgo: 2))
-    }
-    
-    var goodDifference: TimeInterval {
-        yesterdayStats.goodTime - dayBeforeStats.goodTime
-    }
-
+ 
+    var yesterdayStats: DailyPostureStats { postura.stats(for: date(daysAgo: 1)) }
+    var dayBeforeStats: DailyPostureStats { postura.stats(for: date(daysAgo: 2)) }
+ 
     var improvementSummary: (text: String, color: Color, icon: String)? {
-        // Only show if both days have data
-        guard yesterdayStats.goodTime > 0 || dayBeforeStats.goodTime > 0 else {
-            return nil
-        }
-
-        if goodDifference > 0 {
-            return (
-                "Yesterday was better than the day before (+\(formatHMS(goodDifference)))",
-                .green,
-                "arrow.up.right"
-            )
-        } else if goodDifference < 0 {
-            return (
-                "Yesterday was worse than the day before (−\(formatHMS(-goodDifference)))",
-                .red,
-                "arrow.down.right"
-            )
+        guard yesterdayStats.goodTime > 0 || dayBeforeStats.goodTime > 0 else { return nil }
+        let diff = yesterdayStats.goodTime - dayBeforeStats.goodTime
+        if diff > 0 {
+            return ("Better than the day before (+\(formatHMS(diff)))", .green, "arrow.up.right.circle.fill")
+        } else if diff < 0 {
+            return ("Lower than the day before (−\(formatHMS(-diff)))", .red, "arrow.down.right.circle.fill")
         } else {
-            return (
-                "Yesterday matched the day before",
-                .gray,
-                "equal"
-            )
+            return ("Matched the day before", .secondary, "equal.circle.fill")
         }
     }
-
-
+ 
+    // MARK: - Body
+ 
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Connected")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.green)
-
-            // MARK: - Posture Status
-
-            VStack(spacing: 8) {
-                HStack(spacing: 10) {
-                    Image(systemName: postureStatus.icon)
-
-                    Text(postureStatus.text)
-                        .font(.headline)
-                }
-            }
-            .foregroundColor(postureStatus.color)
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(
-                postureStatus.color.opacity(0.12)
-            )
-            .cornerRadius(12)
-            .animation(.easeInOut(duration: 0.2), value: postura.bleManager.PostureStatus)
-            
-            // MARK: - Stats
-            VStack(spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Posture Summary")
-                            .font(.headline)
-
-                        Text(dateLabel(for: postura.selectedDate))
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+ 
+                    // Status card
+                    statusCard
+ 
+                    // Date navigation + stats
+                    statsCard
+ 
+                    // Improvement comparison
+                    if let summary = improvementSummary {
+                        comparisonBanner(summary)
                     }
-
-                    Spacer()
-
-                    HStack(spacing: 12) {
-                        // Previous day
-                        Button {
-                            goToPreviousDay()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.plain)
-
-                        Button {
-                            showCalendar = true
-                        } label: {
-                            Text(dateLabel(for: postura.selectedDate))
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                        }
-
-                        // Next day (disable if today)
-                        Button {
-                            goToNextDay()
-                        } label: {
-                            Image(systemName: "chevron.right")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isTodaySelected)
-                        .opacity(isTodaySelected ? 0.4 : 1)
+ 
+                    // Tracking button
+                    if isTodaySelected {
+                        trackingButton
                     }
-
                 }
-                .padding(.horizontal)
-
-                Spacer()
-                    .frame(height: 24)
-                
-                Text("Posture Time Today")
-                    .font(.headline)
-                
-                HStack(spacing: 20) {
-                    PostureStatView(title: "Good", time: stats.goodTime, color: .green)
-                    PostureStatView(title: "Bad", time: stats.badTime, color: .red)
-                    PostureStatView(title: "Total", time: stats.goodTime + stats.badTime, color: .blue)
-                }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
             }
-            .padding()
-            .background(Color.gray.opacity(0.15))
-            .cornerRadius(16)
-            
-            //MARK: Statistic Summaries
-            summaryBanner(for: postura.selectedDate)
-
-            if let summary = improvementSummary {
-                VStack{
-                    HStack(spacing: 8) {
-                        Image(systemName: summary.icon)
-                        Text(summary.text)
-                            .font(.subheadline)
+            .navigationTitle("postura")
+            #if !os(macOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 8, height: 8)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.green.opacity(0.4), lineWidth: 3)
+                                    .scaleEffect(pulseTracking ? 2.2 : 1)
+                                    .opacity(pulseTracking ? 0 : 0.6)
+                                    .animation(.easeOut(duration: 1.2).repeatForever(autoreverses: false), value: pulseTracking)
+                            )
+                        Text("Connected")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.green)
+                    }
+                    .onAppear { pulseTracking = true }
+                }
+ 
+                ToolbarItem(placement: .automatic) {
+                    Button {
+                        showStatistics = true
+                    } label: {
+                        Image(systemName: "chart.bar.xaxis")
                             .fontWeight(.medium)
                     }
                 }
-                .foregroundColor(summary.color)
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(summary.color.opacity(0.1))
-                .cornerRadius(12)
             }
-
-
-            // MARK: - Controls
-            if isTodaySelected {
-                Button {
-                    if postura.isTracking {
-                        postura.stopPostureTracking()
-                    } else {
-                        postura.startPostureTracking()
-                    }
-                } label: {
-                    Text(postura.isTracking ? "Stop Tracking" : "Start Tracking")
-                }
-                .buttonStyle(
-                    PrimaryButtonStyle(
-                        color: postura.isTracking ? .orange : .green
-                    )
-                )
+            .sheet(isPresented: $showCalendar) {
+                CalendarSheetView(selectedDate: $postura.selectedDate)
             }
-            
-            Spacer()
-
-            Button("Disconnect") {
-                if let peripheral = postura.bleManager.connectedPeripheral {
-                    postura.bleManager.centralManager.cancelPeripheralConnection(peripheral)
-                }
+            .sheet(isPresented: $showStatistics) {
+                StatisticsView(postura: postura)
             }
-            .foregroundColor(.red)
-        }
-        .padding()
-        .sheet(isPresented: $showCalendar) {
-            CalendarSheetView(selectedDate: $postura.selectedDate)
         }
     }
-    
+ 
+    // MARK: - Subviews
+ 
+    private var statusCard: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(postureStatus.color.opacity(0.15))
+                    .frame(width: 52, height: 52)
+                Image(systemName: postureStatus.icon)
+                    .font(.system(size: 24))
+                    .foregroundColor(postureStatus.color)
+            }
+ 
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Current Status")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                    .kerning(0.5)
+                Text(postureStatus.text)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(postureStatus.color)
+            }
+ 
+            Spacer()
+        }
+        .padding(16)
+        .cornerRadius(16)
+        .animation(.easeInOut(duration: 0.25), value: postura.bleManager.PostureStatus)
+    }
+ 
+    private var statsCard: some View {
+        VStack(spacing: 0) {
+            // Header with date nav
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Summary")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                        .kerning(0.5)
+                    Text(dateLabel(for: postura.selectedDate))
+                        .font(.headline)
+                        .fontWeight(.bold)
+                }
+ 
+                Spacer()
+ 
+                HStack(spacing: 4) {
+                    Button { goToPreviousDay() } label: {
+                        Image(systemName: "chevron.left")
+                            .padding(8)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+ 
+                    Button { showCalendar = true } label: {
+                        Image(systemName: "calendar")
+                            .padding(8)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+ 
+                    Button { goToNextDay() } label: {
+                        Image(systemName: "chevron.right")
+                            .padding(8)
+                            .background(Color(.tertiarySystemFill))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isTodaySelected)
+                    .opacity(isTodaySelected ? 0.3 : 1)
+                }
+                .foregroundColor(.primary)
+            }
+            .padding(16)
+ 
+            Divider()
+                .padding(.horizontal, 16)
+ 
+            // Progress arc + stats
+            VStack(spacing: 16) {
+                // Circular progress
+                ZStack {
+                    Circle()
+                        .stroke(Color(.tertiarySystemFill), lineWidth: 12)
+                        .frame(width: 110, height: 110)
+ 
+                    Circle()
+                        .trim(from: 0, to: CGFloat(goodPercent))
+                        .stroke(
+                            totalTime > 0
+                                ? (goodPercent >= 0.7 ? Color.green : goodPercent >= 0.5 ? Color.orange : Color.red)
+                                : Color.gray.opacity(0.3),
+                            style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 110, height: 110)
+                        .animation(.easeInOut(duration: 0.6), value: goodPercent)
+ 
+                    VStack(spacing: 2) {
+                        if totalTime > 0 {
+                            Text("\(Int(goodPercent * 100))%")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                            Text("good")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("—")
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(.top, 8)
+ 
+                // Three stat tiles
+                HStack(spacing: 12) {
+                    StatTile(label: "Good", time: stats.goodTime, color: .green)
+                    StatTile(label: "Bad", time: stats.badTime, color: .red)
+                    StatTile(label: "Total", time: totalTime, color: .blue)
+                }
+                .padding(.bottom, 16)
+            }
+            .padding(.horizontal, 16)
+        }
+        .cornerRadius(16)
+    }
+ 
+    private func comparisonBanner(_ summary: (text: String, color: Color, icon: String)) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: summary.icon)
+                .font(.title3)
+            Text(summary.text)
+                .font(.subheadline)
+                .fontWeight(.medium)
+            Spacer()
+        }
+        .foregroundColor(summary.color)
+        .padding(14)
+        .background(summary.color.opacity(0.1))
+        .cornerRadius(14)
+    }
+ 
+    private var trackingButton: some View {
+        Button {
+            if postura.isTracking {
+                postura.stopPostureTracking()
+            } else {
+                postura.startPostureTracking()
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: postura.isTracking ? "stop.circle.fill" : "play.circle.fill")
+                    .font(.title3)
+                Text(postura.isTracking ? "Stop Tracking" : "Start Tracking")
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(postura.isTracking ? Color.orange : Color.green)
+            .foregroundColor(.white)
+            .cornerRadius(14)
+        }
+        .buttonStyle(.plain)
+    }
+ 
+    // MARK: - Helpers
+ 
     private func goToPreviousDay() {
-        if let prev = Calendar.current.date(
-            byAdding: .day,
-            value: -1,
-            to: postura.selectedDate
-        ) {
+        if let prev = Calendar.current.date(byAdding: .day, value: -1, to: postura.selectedDate) {
             postura.selectedDate = prev
         }
     }
-
+ 
     private func goToNextDay() {
-        if let next = Calendar.current.date(
-            byAdding: .day,
-            value: 1,
-            to: postura.selectedDate
-        ) {
+        if let next = Calendar.current.date(byAdding: .day, value: 1, to: postura.selectedDate) {
             postura.selectedDate = next
         }
     }
-    
-    func stats(for date: Date) -> DailyPostureStats {
-        postura.stats(for: date)
-    }
-
-    func previousDay(of date: Date) -> Date {
-        Calendar.current.date(byAdding: .day, value: -1, to: date)!
-    }
-    
-    func summaryState(for date: Date) -> SummaryState? {
-        let today = stats(for: date)
-        let prev = stats(for: previousDay(of: date))
-
-        let todayTotal = today.goodTime + today.badTime
-        let prevTotal = prev.goodTime + prev.badTime
-
-        guard todayTotal > 0 else { return nil }
-
-        let percent = Int((today.goodTime / todayTotal) * 100)
-
-        if prevTotal > 0 {
-            let delta = Int(today.goodTime - prev.goodTime)
-            return .comparison(percent: percent, delta: delta)
-        } else {
-            return .singleDay(percent: percent)
-        }
-    }
-
-    @ViewBuilder
-    func summaryBanner(for date: Date) -> some View {
-        if let state = summaryState(for: date) {
-            
-            switch state {
-
-            case .comparison(let percent, let delta):
-                let isBetter = delta > 0
-
-                HStack(spacing: 12) {
-                    Image(systemName: isBetter ? "arrow.up.right" : "arrow.down.right")
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("You've averaged **\(percent)%** good posture on \(relativeDayLabel(for: date)).")
-
-                        Text(
-                            isBetter
-                            ? "↑ Better than the day before (+\(formatHMS(TimeInterval(delta))))"
-                            : "↓ Slightly lower than the day before"
-                        )
-                    }
-                }
-                .foregroundColor(isBetter ? .green : .orange)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill((isBetter ? Color.green : Color.orange).opacity(0.12))
-                )
-
-            case .singleDay(let percent):
-                let isGoodDay = percent >= 50
-
-                HStack(spacing: 8) {
-                    Image(systemName: isGoodDay ? "sparkles" : "exclamationmark.triangle.fill")
-
-                    Text(
-                        isGoodDay
-                        ? "You've averaged **\(percent)%** good posture \(relativeDayLabel(for: date)). Keep it up!"
-                        : "You've averaged **\(percent)%** good posture \(relativeDayLabel(for: date)). Watch your posture."
-                    )
-                }
-                .foregroundColor(isGoodDay ? .blue : .orange)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.12))
-                )
-            }
-        }
-    }
-
 }
-
-func relativeDayLabel(for date: Date) -> String {
-    if Calendar.current.isDateInToday(date) {
-        return "Today"
-    }
-    if Calendar.current.isDateInYesterday(date) {
-        return "Yesterday"
-    }
-    return "on " + date.formatted(.dateTime.weekday())
-}
-
-
-enum SummaryState {
-    case comparison(percent: Int, delta: Int)
-    case singleDay(percent: Int)
-}
-
-struct DayComparison {
-    let percentage: Int
-    let deltaSeconds: Int
-    let isBetter: Bool
-}
-
-
-func formatHMS(_ seconds: TimeInterval) -> String {
-    let total = Int(seconds)
-    let h = total / 3600
-    let m = (total % 3600) / 60
-    let s = total % 60
-
-    if h > 0 {
-        return String(format: "%d:%02d:%02d", h, m, s)
-    } else {
-        return String(format: "%02d:%02d", m, s)
-    }
-}
-
-func dateLabel(for date: Date) -> String {
-    if Calendar.current.isDateInToday(date) {
-        return "Today"
-    } else {
-        return date.formatted(
-            .dateTime.weekday(.wide).month().day()
-        )
-    }
-}
-
-struct PostureStatView: View {
-    let title: String
+ 
+// MARK: - Stat Tile
+ 
+struct StatTile: View {
+    let label: String
     let time: TimeInterval
     let color: Color
-
+ 
     var body: some View {
-        VStack {
-            Text(title)
+        VStack(spacing: 5) {
+            Text(label)
+                .font(.caption)
+                .fontWeight(.semibold)
                 .foregroundColor(color)
-
+                .textCase(.uppercase)
+                .kerning(0.5)
             Text(
                 Duration.seconds(time)
                     .formatted(.time(pattern: .hourMinuteSecond))
             )
-            .font(.title3)
-            .fontWeight(.semibold)
+            .font(.system(size: 15, weight: .bold, design: .monospaced))
+            .foregroundColor(.primary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(color.opacity(0.08))
+        .cornerRadius(12)
     }
 }
-
-
+ 
+// MARK: - Shared Helpers
+ 
+func formatHMS(_ seconds: TimeInterval) -> String {
+    let total = Int(max(0, seconds))
+    let h = total / 3600
+    let m = (total % 3600) / 60
+    let s = total % 60
+    return h > 0
+        ? String(format: "%d:%02d:%02d", h, m, s)
+        : String(format: "%02d:%02d", m, s)
+}
+ 
+func dateLabel(for date: Date) -> String {
+    if Calendar.current.isDateInToday(date) { return "Today" }
+    return date.formatted(.dateTime.weekday(.wide).month().day())
+}
+ 
+func relativeDayLabel(for date: Date) -> String {
+    if Calendar.current.isDateInToday(date) { return "today" }
+    if Calendar.current.isDateInYesterday(date) { return "yesterday" }
+    return "on " + date.formatted(.dateTime.weekday())
+}
+ 
 private func date(daysAgo: Int) -> Date {
     Calendar.current.date(
         byAdding: .day,
         value: -daysAgo,
         to: Calendar.current.startOfDay(for: Date())
     )!
+}
+ 
+enum SummaryState {
+    case comparison(percent: Int, delta: Int)
+    case singleDay(percent: Int)
+}
+ 
+struct PostureStatView: View {
+    let title: String
+    let time: TimeInterval
+    let color: Color
+ 
+    var body: some View {
+        VStack {
+            Text(title).foregroundColor(color)
+            Text(Duration.seconds(time).formatted(.time(pattern: .hourMinuteSecond)))
+                .font(.title3).fontWeight(.semibold)
+        }
+    }
 }
